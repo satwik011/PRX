@@ -48,6 +48,11 @@ Read only what the task needs. Do not read `docs/` — those are for the human.
 7. **Domain math lives in `lib/domain/` as pure functions** with no I/O, and is unit-tested.
    Never inline percent or streak math in a component.
 8. Weights are **kg**. The `unit` column exists but v1 ships kg only.
+9. **Everything must run on macOS and Windows.** `package.json` scripts stay
+   cross-platform — no `rm -rf`, no `cp`, no `NODE_ENV=x cmd`, no unix-only chaining.
+   Use `rimraf` / `cross-env` or a small node script. Import paths must match file
+   name casing exactly; both dev machines are case-insensitive and will hide a mistake
+   that breaks CI.
 
 ## Structure
 

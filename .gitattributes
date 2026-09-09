@@ -1,20 +1,38 @@
-# Normalise line endings so the repo is identical on every machine.
+# ── Line endings ──────────────────────────────────────────────────────
+# Everything is LF in the repo AND in the working tree, on every OS.
+# This is stronger than core.autocrlf and wins over it, so macOS, Windows
+# and Linux checkouts are byte-identical and diffs stay clean.
 * text=auto eol=lf
 
-# Binary — never touch
-*.png binary
-*.jpg binary
-*.jpeg binary
-*.gif binary
-*.ico binary
-*.woff binary
-*.woff2 binary
-*.ttf binary
-*.otf binary
-*.p8 binary
-*.p12 binary
-*.jks binary
-*.keystore binary
+# Windows-native scripts are the exception — cmd.exe and PowerShell
+# mis-parse LF-only files, so these must be CRLF on disk.
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+*.ps1  text eol=crlf
 
-# Lockfile: keep diffs quiet in review but always take ours on conflict-by-rerun
+# ...and these must stay LF even when checked out on Windows, or they
+# fail to execute under bash / Gradle.
+*.sh     text eol=lf
+gradlew  text eol=lf
+*.gradle text eol=lf
+
+# ── Binary — never transform, never diff ──────────────────────────────
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.webp binary
+*.svg  text eol=lf
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.otf   binary
+*.p8    binary
+*.p12   binary
+*.jks   binary
+*.keystore binary
+*.mobileprovision binary
+
+# ── Review noise ──────────────────────────────────────────────────────
 package-lock.json linguist-generated=true
