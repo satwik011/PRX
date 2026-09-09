@@ -1,0 +1,291 @@
+// ═══════════════════════════════════════════════════════════════════
+// Gym Progress Tracker — data model
+// Paste into https://dbdiagram.io
+//
+// Cloud  : Supabase Postgres (source of record, RLS per user)
+// Local  : expo-sqlite mirror (source of truth for reads, offline-first)
+// See PRD.md §4 for the modelling decisions behind this.
+// ═══════════════════════════════════════════════════════════════════
+
+Project gym_progress_tracker {
+  database_type: 'PostgreSQL'
+  Note: '''
+    Offline-first gym / habit tracker.
+
+    Three ideas carry the whole model:
+    1. A day's tasks are a SNAPSHOT copied from a template, never a live
+       reference — editing a template must not rewrite history.
+    2. Personal records are DERIVED (max weight per exercise name), never
+       stored, so there is no second source of truth to drift.
+    3. Every write lands in SQLite first and is replayed to Postgres from
+       the local `outbox` table.
+  '''
+}
+
+// ─── Enums ─────────────────────────────────────────────────────────
+
+enum task_type {
+  check   [note: 'Done / not done. Percent = 100 or 0']
+  numeric [note: 'Counts toward a target. Percent = min(100, value/target*100)']
+  pr      [note: 'Weight x reps. Percent = 100 once weight > 0. Gym-specific']
+}
+
+enum unit_system {
+  kg [note: 'Default and only option shipped in v1']
+  lb [note: 'Column exists so the switch is a settings change later, not a migration']
+}
+
+// ─── Identity ──────────────────────────────────────────────────────
+
+Table profiles {
+  id         uuid        [pk, note: 'FK to auth.users.id, managed by Supabase Auth']
+  name       varchar     [not null]
+  created_at timestamptz [not null, default: `now()`]
+
+  Note: 'One row per account. Supabase owns auth.users; this holds app-level profile data.'
+}
+
+Table user_settings {
+  user_id          uuid        [pk]
+  streak_threshold integer     [not null, default: 80, note: 'Percent a day must reach to count. UI offers 70 / 80 / 90']
+  plan_lock_hour   integer     [not null, default: 8, note: 'Local hour the day plan freezes. UI offers 7 / 8 / 9']
+  unit_system      unit_system [not null, default: 'kg', note: 'v1 ships kg only; the UI toggle arrives in a later phase']
+  updated_at       timestamptz [not null, default: `now()`]
+
+  Note: 'One row per user. Created on signup so the app never has to handle a missing settings row.'
+}
+
+// ─── Templates (the reusable plan) ──────────────────────────────────
+
+Table templates {
+  id           uuid        [pk]
+  user_id      uuid        [not null]
+  name         varchar     [not null, note: 'e.g. Chest Day, Leg Day, Rest Day']
+  sort         integer     [not null, default: 0]
+  is_seed      boolean     [not null, default: false, note: 'Shipped with the app. Duplicate-to-edit rather than edit in place']
+  copied_from  uuid        [note: 'Set when this template was duplicated from another. Provenance only — the copy is fully independent']
+  last_used_on date        [note: 'Drives "recently used" ordering in the template library']
+  updated_at   timestamptz [not null, default: `now()`]
+  deleted_at   timestamptz [note: 'Soft delete, so deletions sync instead of resurrecting']
+
+  indexes {
+    (user_id, sort)
+    (user_id, deleted_at)
+    (user_id, last_used_on)
+  }
+
+  Note: '''
+    The template LIBRARY. Build a day plan once, reuse it forever — you should
+    never be re-entering the same eight exercises every morning.
+
+    Duplicating a template deep-copies its template_tasks into a new template.
+    The copy shares nothing with its origin, so customising it can never affect
+    the original or any day already logged against it.
+  '''
+}
+
+Table template_tasks {
+  id          uuid        [pk]
+  template_id uuid        [not null]
+  name        varchar     [not null]
+  type        task_type   [not null]
+  target      numeric     [note: 'numeric type only — e.g. 3 sets, 8 glasses']
+  unit        varchar     [note: 'numeric: sets / glasses / min. pr: kg. null for check']
+  sort        integer     [not null, default: 0]
+  updated_at  timestamptz [not null, default: `now()`]
+  deleted_at  timestamptz
+
+  indexes {
+    (template_id, sort)
+  }
+
+  Note: 'The blueprint. Copied into day_log_tasks when a template is applied to a day.'
+}
+
+// ─── Day logs (what actually happened) ──────────────────────────────
+
+Table day_logs {
+  id          uuid        [pk]
+  user_id     uuid        [not null]
+  day         date        [not null, note: 'Local calendar date, YYYY-MM-DD. NOT a timestamp']
+  template_id uuid        [note: 'Nullable — a day can be all ad-hoc tasks']
+  locked_at   timestamptz [note: 'Set when the plan freezes. Null = template and task list still editable']
+  updated_at  timestamptz [not null, default: `now()`]
+
+  indexes {
+    (user_id, day) [unique]
+    (user_id, day, updated_at)
+  }
+
+  Note: 'Exactly one row per user per day. Completion percent is computed from its tasks, never stored.'
+}
+
+Table day_log_tasks {
+  id             uuid        [pk]
+  day_log_id     uuid        [not null]
+  source_task_id uuid        [note: 'Nullable. Points at the template_task this was copied from, for grouping only. Ad-hoc tasks have none']
+  name           varchar     [not null, note: 'Denormalised on purpose — renaming a template task must not rewrite history']
+  type           task_type   [not null]
+  sort           integer     [not null, default: 0]
+
+  done           boolean     [note: 'check only']
+  target         numeric     [note: 'numeric only — copied from the template at snapshot time']
+  value          numeric     [note: 'numeric only — current progress']
+  unit           varchar     [note: 'numeric and pr']
+  weight         numeric     [note: 'pr only']
+  reps           integer     [note: 'pr only']
+
+  updated_at     timestamptz [not null, default: `now()`]
+
+  indexes {
+    (day_log_id, sort)
+    (type, name) [note: 'Drives the derived personal-records query']
+  }
+
+  Note: '''
+    A SNAPSHOT, not a reference. name / type / target / unit are copied from
+    template_tasks at the moment a template is applied, so history is immutable
+    against later template edits.
+
+    Type-specific columns are nullable rather than split into three tables:
+    a task can be edited into a different type, and the query patterns are all
+    "give me every task on this day".
+  '''
+}
+
+// ─── Local only (expo-sqlite, never synced to Postgres) ─────────────
+
+Table outbox {
+  id         integer [pk, increment]
+  entity     varchar [not null, note: 'templates | template_tasks | day_logs | day_log_tasks | user_settings']
+  entity_id  varchar [not null]
+  op         varchar [not null, note: 'insert | update | delete']
+  payload    text    [not null, note: 'JSON body to replay against Supabase']
+  created_at integer [not null, note: 'Epoch ms']
+  attempts   integer [not null, default: 0]
+
+  Note: 'Every local write appends here. The sync worker drains it on foreground and on reconnect, oldest first.'
+}
+
+Table sync_meta {
+  key   varchar [pk, note: 'e.g. last_synced_at']
+  value text
+
+  Note: 'Local key/value scratch for the sync worker.'
+}
+
+// ─── Relationships ─────────────────────────────────────────────────
+
+Ref: profiles.id < templates.user_id                   // one user, many templates
+Ref: profiles.id - user_settings.user_id               // one user, one settings row
+Ref: profiles.id < day_logs.user_id                    // one user, many days
+
+Ref: templates.id < template_tasks.template_id         // one template, many tasks
+Ref: templates.id <? day_logs.template_id              // a day may be based on a template
+Ref: templates.id <? templates.copied_from             // a template may be a copy of another
+
+Ref: day_logs.id < day_log_tasks.day_log_id            // one day, many tasks
+Ref: template_tasks.id <? day_log_tasks.source_task_id // provenance only, nullable
+
+// ─── Table groups ──────────────────────────────────────────────────
+
+TableGroup identity [note: 'Synced. RLS: auth.uid() = id / user_id'] {
+  profiles
+  user_settings
+}
+
+TableGroup plan [note: 'Synced. The reusable blueprint'] {
+  templates
+  template_tasks
+}
+
+TableGroup log [note: 'Synced. Immutable history'] {
+  day_logs
+  day_log_tasks
+}
+
+TableGroup local_only [note: 'SQLite only — never leaves the device'] {
+  outbox
+  sync_meta
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// NOT TABLES — derived, documented here so nobody adds them later
+//
+//   v_personal_records
+//     SELECT name, max(weight) AS best_weight, ...
+//     FROM day_log_tasks t JOIN day_logs d ON d.id = t.day_log_id
+//     WHERE t.type = 'pr' AND t.weight > 0 AND d.user_id = auth.uid()
+//     GROUP BY name;
+//
+//   day percent   = mean(task percent) over a day's tasks
+//   streak        = consecutive days where round(day percent) >= streak_threshold,
+//                   walking back from today (today not qualifying YET does not break it)
+//   new PR badge  = today's weight > max weight for that task name on any other day
+//
+// Storing any of these would create a second source of truth that drifts.
+//
+// Also NOT a table in v1: the quote of the day. It ships as a bundled
+// JSON constant (lib/content/quotes.ts) picked by day-of-year, so the
+// dashboard never waits on the network for decoration. A `quotes` table
+// plus a user favourites join arrives in a later phase.
+// ═══════════════════════════════════════════════════════════════════
+
+// ─── Seed data (mirrors the mockup) ────────────────────────────────
+
+Records profiles(id, name, created_at) {
+  'u-satwik', 'Satwik', '2026-08-01'
+}
+
+Records user_settings(user_id, streak_threshold, plan_lock_hour, unit_system) {
+  'u-satwik', 80, 8, 'kg'
+}
+
+// tpl-push is a user COPY of the seeded Chest Day, then customised —
+// the flow the template library is built around.
+Records templates(id, user_id, name, sort, is_seed, copied_from, last_used_on) {
+  'tpl-chest', 'u-satwik', 'Chest Day',   0, true,  null,        '2026-09-08'
+  'tpl-leg',   'u-satwik', 'Leg Day',     1, true,  null,        '2026-09-09'
+  'tpl-rest',  'u-satwik', 'Rest Day',    2, true,  null,        '2026-09-07'
+  'tpl-push',  'u-satwik', 'Push Day v2', 3, false, 'tpl-chest', null
+}
+
+Records template_tasks(id, template_id, name, type, target, unit, sort) {
+  'tt-c1', 'tpl-chest', 'Bench Press',      'pr',      null, 'kg',      0
+  'tt-c2', 'tpl-chest', 'Incline DB Press', 'pr',      null, 'kg',      1
+  'tt-c3', 'tpl-chest', 'Push-ups',         'numeric', 3,    'sets',    2
+  'tt-c4', 'tpl-chest', 'Warm-up',          'check',   null, null,      3
+  'tt-l1', 'tpl-leg',   'Squat',            'pr',      null, 'kg',      0
+  'tt-l2', 'tpl-leg',   'Leg Press',        'numeric', 4,    'sets',    1
+  'tt-l3', 'tpl-leg',   'Stretch',          'check',   null, null,      2
+  'tt-r1', 'tpl-rest',  'Walk 20 min',      'check',   null, null,      0
+  'tt-r2', 'tpl-rest',  'Water intake',     'numeric', 8,    'glasses', 1
+  'tt-r3', 'tpl-rest',  'Mobility work',    'check',   null, null,      2
+  'tt-p1', 'tpl-push',  'Bench Press',      'pr',      null, 'kg',      0
+  'tt-p2', 'tpl-push',  'Incline DB Press', 'pr',      null, 'kg',      1
+  'tt-p3', 'tpl-push',  'Overhead Press',   'pr',      null, 'kg',      2
+  'tt-p4', 'tpl-push',  'Push-ups',         'numeric', 4,    'sets',    3
+  'tt-p5', 'tpl-push',  'Warm-up',          'check',   null, null,      4
+}
+
+Records day_logs(id, user_id, day, template_id, locked_at) {
+  'dl-0905', 'u-satwik', '2026-09-05', 'tpl-chest', '2026-09-05 08:00:00'
+  'dl-0906', 'u-satwik', '2026-09-06', 'tpl-leg',   '2026-09-06 08:00:00'
+  'dl-0907', 'u-satwik', '2026-09-07', 'tpl-rest',  '2026-09-07 08:00:00'
+  'dl-0908', 'u-satwik', '2026-09-08', 'tpl-chest', '2026-09-08 08:00:00'
+  'dl-0909', 'u-satwik', '2026-09-09', 'tpl-leg',   null
+}
+
+// dl-0908 — Chest Day, all four tasks complete -> 100%
+// dl-0909 — today, Leg Day, in progress: Squat logged, Leg Press half done,
+//           Stretch pending, plus one ad-hoc task (no source_task_id).
+Records day_log_tasks(id, day_log_id, source_task_id, name, type, sort, done, target, value, unit, weight, reps) {
+  'dt-1', 'dl-0908', 'tt-c1', 'Bench Press',      'pr',      0, null,  null, null, 'kg',   80,   5
+  'dt-2', 'dl-0908', 'tt-c2', 'Incline DB Press', 'pr',      1, null,  null, null, 'kg',   45,   8
+  'dt-3', 'dl-0908', 'tt-c3', 'Push-ups',         'numeric', 2, null,  3,    3,    'sets', null, null
+  'dt-4', 'dl-0908', 'tt-c4', 'Warm-up',          'check',   3, true,  null, null, null,   null, null
+  'dt-5', 'dl-0909', 'tt-l1', 'Squat',            'pr',      0, null,  null, null, 'kg',   102.5, 3
+  'dt-6', 'dl-0909', 'tt-l2', 'Leg Press',        'numeric', 1, null,  4,    2,    'sets', null, null
+  'dt-7', 'dl-0909', 'tt-l3', 'Stretch',          'check',   2, false, null, null, null,   null, null
+  'dt-8', 'dl-0909', null,    'Calf raises',      'numeric', 3, null,  3,    1,    'sets', null, null
+}
