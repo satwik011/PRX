@@ -74,15 +74,33 @@ CSS and must not reach the app.
 | `.lighten` (`mix-blend-mode`) | Decorative; no RN equivalent |
 | `textarea.input` | No multiline field in v1 |
 
-## NativeWind setup
+### Styling engine: Uniwind, not NativeWind
 
-`global.css` defines the aliases as HSL triplets under `:root`; `tailwind.config.js` maps
-them via `hsl(var(--x))` and extends `borderRadius`, `spacing`, `fontFamily` and `fontSize`.
-The values are in `.claude/rules/tokens.md`; the config is generated from them, and
-`theme/tokens.ts` re-exports them for the places NativeWind can't reach (chart props,
-`Progress.Bar` colors, `dayComponent` styles).
+NativeWind was the original pick and it did not survive contact with Expo SDK 57.
+v5 is still documented as pre-release and "not intended for production use"; v4
+(latest 4.2.6) predates RN 0.86 by several SDKs.
 
-Pin **NativeWind v4**. v5 is pre-release and documented as not for production.
+**Uniwind 1.12.0** replaced it: stable, MIT, a deliberate drop-in for the same
+`className` API, with peer deps that explicitly cover `react-native >=0.81` and
+`react >=19`. `react-native-reusables` supports it, so the component plan was unaffected.
+Verified rendering correctly in the Phase 0 spike (commit `0e1b0c7`).
+
+### Tailwind v4 is CSS-first — there is no config file
+
+`tailwind.config.js` does not exist. Every token lives in the `@theme` block of
+`src/global.css`, and `src/theme/tokens.ts` re-exports the same values for places a
+`className` can't reach — chart props, `Progress.Bar` colors, `dayComponent` styles.
+
+Two naming decisions taken during the spike:
+
+- **Font families are `font-heading` / `font-strong`, not `medium` / `semibold`.**
+  Tailwind ships `font-medium` and `font-semibold` as font-*weight* utilities; a family
+  of the same name collides with them.
+- **The numeric spacing scale stays Tailwind's 4px grid.** Nocturne's rounded values
+  (3/6/8/12/16/24) map onto Tailwind's `1`/`1.5`/`2`/`3`/`4`/`6` with a 1px difference on
+  the smallest step only. Recovering that pixel would have cost the entire standard
+  utility vocabulary. Only Nocturne's fixed layout values (screen 18, screen-top 58,
+  card-gap 14, task-gap 10) became named tokens.
 
 ## Source
 

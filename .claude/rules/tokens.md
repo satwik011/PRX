@@ -1,112 +1,132 @@
 # Design tokens
 
-Nocturne, dark only. Never invent a value — if it is not here, ask.
-Code references the **alias**, not the raw hex.
+Nocturne, dark only. **Never invent a value** — if it is not here, ask.
 
-## Aliases (use these)
+Styling is **Uniwind + Tailwind v4**, which is CSS-first: there is no `tailwind.config.js`.
+The tokens live in an `@theme` block in `src/global.css`, and this file is the source of
+truth for that block. Change both together.
 
-| Alias | Hex | HSL | Use |
-|---|---|---|---|
-| `background` | `#161826` | `232 27% 12%` | screen ground |
-| `foreground` | `#e9e9ed` | `240 10% 92%` | primary text |
-| `card` | `#232532` | `232 18% 17%` | cards, inputs, dialogs |
-| `primary` | `#9184d9` | `249 53% 68%` | accent: progress fill, active tab, links |
-| `primary-foreground` | `#161826` | `232 27% 12%` | ink on accent fills |
-| `secondary` | `#a7a1db` | `246 45% 75%` | second accent |
-| `muted` / `track` | `#3f424d` | `227 10% 27%` | progress tracks, empty heatmap cells, card hairline, tag bg |
-| `muted-foreground` | `#b2b6ca` | `230 18% 75%` | secondary body text (13px) |
-| `subtle-foreground` | `#9397ab` | `230 12% 62%` | eyebrows, tertiary text |
-| `faint-foreground` | `#75798c` | `230 9% 50%` | inactive tabs, weekday headers, footnotes |
-| `border` | `rgba(233,233,237,0.16)` | `240 10% 92% / .16` | hairlines, row separators |
-| `warning` | `#dc932e` | `35 71% 52%` | **partial** day |
-| `warning-foreground` | `#211a08` | `39 78% 8%` | ink on amber |
-| `destructive` | `#f97770` | `3 92% 71%` | auth errors |
-| `tag-accent-bg` | `#423a6a` | `250 29% 32%` | "New PR" badge bg |
-| `tag-accent-fg` | `#f5f4ff` | `245 100% 98%` | "New PR" badge text |
-| `elev-md-border` | `#595d6c` | `227 10% 39%` | elev-md hairline |
-| `scrim` | `#292b31` @ 50% | `225 9% 18%` | dialog backdrop |
+For anything that cannot take a `className` — chart props, `Progress.Bar` colors,
+`react-native-calendars` `theme`, SVG fills — import from `src/theme/tokens.ts`.
+
+## Colors — use the class, not the hex
+
+| Class | Hex | Use |
+|---|---|---|
+| `bg-background` | `#161826` | screen ground |
+| `text-foreground` | `#e9e9ed` | primary text |
+| `bg-card` | `#232532` | cards, inputs, dialogs |
+| `bg-primary` / `text-primary` / `border-primary` | `#9184d9` | accent: progress fill, active tab, links |
+| `text-primary-foreground` | `#161826` | ink on accent fills |
+| `bg-secondary` | `#a7a1db` | second accent |
+| `bg-muted` / `border-muted` | `#3f424d` | card hairline, empty heatmap cells, tag bg |
+| `bg-track` | `#3f424d` | progress-bar track (same value, different intent) |
+| `text-muted-foreground` | `#b2b6ca` | secondary body text (13px) |
+| `text-subtle` | `#9397ab` | eyebrows, tertiary text |
+| `text-faint` | `#75798c` | inactive tabs, weekday headers, footnotes |
+| `border-line` | `rgba(233,233,237,.16)` | hairlines, row separators |
+| `bg-warning` | `#dc932e` | **partial** day |
+| `text-warning-foreground` | `#211a08` | ink on amber |
+| `text-destructive` | `#f97770` | auth errors |
+| `bg-tag-bg` / `text-tag-fg` | `#423a6a` / `#f5f4ff` | "New PR" badge |
+| `border-elev-md` | `#595d6c` | elev-md hairline |
+| `border-elev-lg` | `#9397ab` | elev-lg hairline |
 
 There is **no success color.** A completed day is `primary`. Never green.
-The full 100→900 ramps and the deck-only `--color-section*` values are in
-`docs/design.md`; they are not used in the app.
+Full 100→900 ramps and the deck-only `--color-section*` values are in `docs/design.md`;
+they are not used in the app.
 
 ## Type
 
-Inter 400 / 500 / 600 via `@expo-google-fonts/inter`.
-Headings: weight 500, `lineHeight` ×1.12, `letterSpacing` −0.015em.
+Inter 400 / 500 / 600, loaded in `src/app/_layout.tsx`.
 
-| Name | Size / LH | Weight | Color | Use |
+Family classes are **`font-sans` (400), `font-heading` (500), `font-strong` (600)**.
+They are *not* named `medium` / `semibold` — those collide with Tailwind's own
+font-weight utilities.
+
+| Class | Size / LH | Family | Color | Use |
 |---|---|---|---|---|
-| `display` | 44 / 44 | 500 | foreground | streak count |
-| `h2` | 32 / 36 | 500 | foreground | screen titles |
-| `h4` | 20 / 22 | 500 | foreground | dialog title |
-| `stat` | 18–20 / 22 | 500 | primary | today %, PR best |
-| `card-title` | 17 / 20 | 500 | foreground | card headings |
-| `body` | 15 / 23 | 400 | foreground | task names, form values |
-| `sm` | 13 / 18 | 400 | muted-foreground | card descriptions, quote (italic) |
-| `label` | 12 / 16 | 400 | foreground @ 70% | form labels |
-| `meta` | 11 / 14 | 400 | subtle-foreground | "best 80 kg", legend, tags |
-| `micro` | 10 / 12 | 400 | faint-foreground | tab labels, weekday headers, calendar digits |
-| `eyebrow` | 11 / 14 | 500 | subtle-foreground | **UPPERCASE, +0.08em** — date above screen titles |
-| `kicker` | 10 / 12 | 500 | primary | **UPPERCASE, +0.1em** — card kickers |
+| `text-display` | 44 / 44 | heading | foreground | streak count (add `leading-none`) |
+| `text-h2` | 32 / 36 | heading | foreground | screen titles |
+| `text-h4` | 20 / 22 | heading | foreground | dialog title, stat numerals |
+| `text-card-title` | 17 / 20 | heading | foreground | card headings |
+| `text-body` | 15 / 23 | sans | foreground | task names, form values |
+| `text-sm` | 13 / 18 | sans | muted-foreground | card descriptions, quote (italic) |
+| `text-label` | 12 / 16 | sans | foreground/70 | form labels |
+| `text-meta` | 11 / 14 | sans | subtle | "best 80 kg", legend, tags |
+| `text-micro` | 10 / 12 | sans | faint | tab labels, weekday headers, calendar digits |
+
+Eyebrow = `text-meta uppercase tracking-[0.08em] text-subtle`.
+Card kicker = `font-heading text-micro uppercase tracking-[0.1em] text-primary`.
 
 ## Spacing
 
-Scale (rounded to 4pt from Nocturne's deck-scaled values — deliberate, do not "fix"):
+**The numeric scale is Tailwind's default 4px grid** — `p-2` is 8px, as everywhere else.
+Nocturne's deck-scaled values map onto it almost exactly:
 
-`1:3` · `2:6` · `3:8` · `4:12` · `6:16` · `8:24`
+| Nocturne | 2.8 | 5.6 | 8.4 | 11.2 | 16.8 | 22.4 |
+|---|---|---|---|---|---|---|
+| Class | `1` (4) | `1.5` (6) | `2` (8) | `3` (12) | `4` (16) | `6` (24) |
 
-Fixed layout values, read off the mockup:
+Only the smallest step differs, by 1px. Fighting Tailwind's scale to recover that pixel
+would cost the entire standard utility vocabulary.
 
-| Context | Value |
+Nocturne's fixed layout values are **named** tokens:
+
+| Class | Value |
 |---|---|
-| Screen padding | `58 / 18 / 12` (top / horizontal / bottom) |
-| Auth screen horizontal | 24 |
-| Gap between stacked cards | 14 |
-| Gap between task cards | 10 |
-| Tab bar padding | `8 / 4 / 10` |
+| `px-screen` | 18 |
+| `pt-screen-top` | 58 |
+| `gap-card-gap` / `mb-card-gap` | 14 |
+| `gap-task-gap` | 10 |
+
+Screen bottom padding is `pb-3` (12).
 
 ## Radius
 
-`sm: 4` · `md: 8` (buttons, inputs, cards) · `lg: 14` (dialogs) · `pill: 999`
-(progress bars, week bars, chips) · heatmap cells: `5` · tags: `6`
+`rounded-sm` 4 · `rounded-md` 8 (buttons, inputs, cards) · `rounded-lg` 14 (dialogs) ·
+`rounded-pill` 999 (progress bars, week bars, chips). Heatmap cells use `rounded-sm`;
+tags use `rounded-[6px]`.
 
 ## Elevation
 
-| Token | Implementation |
+| Token | Classes / style |
 |---|---|
-| `elev-sm` | `borderWidth: 1, borderColor: muted` — **no shadow**. Every card uses this. |
-| `elev-md` | `borderWidth: 1, borderColor: elev-md-border`, iOS `offset {0,6} radius 9 opacity .55`, Android `elevation: 6` |
-| `elev-lg` | `borderWidth: 1, borderColor: subtle-foreground`, iOS `offset {0,16} radius 20 opacity .65`, Android `elevation: 16` — dialogs only |
+| `elev-sm` | `border border-muted` — **no shadow**. Every card uses this. |
+| `elev-md` | `border border-elev-md` + `elevation.md` from `theme/tokens.ts` |
+| `elev-lg` | `border border-elev-lg` + `elevation.lg` — dialogs only |
 
 ## Button variants
 
-| Variant | Spec |
+| Variant | Classes |
 |---|---|
-| `primary` | **accent text + accent 1px border, transparent fill.** Press: accent @12%, active @22% |
-| `secondary` | border = `border`. Press: foreground @7%, active @14% |
-| `ghost` | accent text, `paddingHorizontal: 3`. Press: accent @10% |
-| `icon` | 36 × 36, no padding |
-| `disabled` | `opacity: 0.45` |
+| `primary` | `border border-primary` + `text-primary`, **transparent fill** |
+| `secondary` | `border border-line` + `text-foreground` |
+| `ghost` | `text-primary`, `px-1` |
+| `icon` | `h-9 w-9 p-0` |
+| disabled | `opacity-45` |
 
-Base: gap 6, 14/1.2 weight 500, padding `6 / 10`, radius `md`.
+Base: `flex-row items-center justify-center gap-1.5 rounded-md px-3 py-1.5 font-heading text-[14px]`.
 
 ---
 
 ## ⚠️ Gotcha list — check every one before calling UI work done
 
-These are the things that get built wrong confidently. Each one visibly breaks the design.
+Each item visibly breaks the design if you get it wrong. Verified rendering correctly in
+the Phase 0 spike (commit `0e1b0c7`).
 
-1. **Cards are a 1px `muted` border with NO drop shadow.** `elev-sm` is a hairline.
-2. **Primary buttons are accent-OUTLINED, not accent-filled.**
+1. **Cards are `border border-muted` with NO shadow.** `elev-sm` is a hairline.
+2. **Primary buttons are OUTLINED, not filled.**
 3. `Progress.Bar` needs `borderWidth={0}` — the library defaults to a 1px border.
 4. `Progress.Bar` needs `width={null}` to flex; a number pins it.
-5. `react-native-calendars` defaults to a **white** background. Set `theme.calendarBackground` to `card`.
-6. Week bars need a `muted` track pill rendered behind them — gifted-charts has no unfilled track.
+5. `react-native-calendars` defaults to a **white** background. Set `theme.calendarBackground`.
+6. Week bars need a `bg-track` pill behind them — gifted-charts has no unfilled track.
 7. Partial days are **amber**, never green, never red.
-8. Three distinct muted text weights exist (`muted` / `subtle` / `faint`). Do not collapse them into one grey.
-9. Progress tracks are `muted`; fills are `primary`; both fully pill-rounded.
-10. `<FadedRule />` fades to transparent over 48px at each end. In-card row separators are **solid** — do not fade those.
-11. Eyebrow labels are 11px UPPERCASE +0.08em `subtle-foreground`.
-12. Streak numeral is 44px weight 500 `lineHeight: 1`.
+8. Three distinct muted text weights (`muted-foreground` / `subtle` / `faint`). Do not collapse them.
+9. Progress tracks are `bg-track`; fills are `bg-primary`; both `rounded-pill`.
+10. `<FadedRule />` fades over 48px at each end. In-card row separators are **solid**.
+11. Eyebrows are `text-meta uppercase tracking-[0.08em] text-subtle`.
+12. Streak numeral is `font-heading text-display leading-none`.
 13. Nothing uses `--color-section*`.
+14. Never use `font-medium` / `font-semibold` for a family — they are weight utilities.
+    The families are `font-heading` and `font-strong`.

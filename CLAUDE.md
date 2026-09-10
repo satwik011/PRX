@@ -10,14 +10,14 @@ Design system is **Nocturne**, from a Claude Design mockup — match it exactly.
 Installed: **Expo SDK 57** · React Native 0.86.3 · React 19.2.3 · expo-router ·
 TypeScript 6 strict. Path alias `@/*` → `./src/*`. App code lives in `src/`.
 
+Styling: **Uniwind 1.12.0 + Tailwind v4**, verified on SDK 57. NativeWind is not used.
+Tailwind v4 is CSS-first — there is **no `tailwind.config.js`**; tokens live in the
+`@theme` block of `src/global.css`. Fonts: Inter 400/500/600.
+
 Planned, **not yet installed** — check `libraries.md` before adding any of these:
 react-native-reusables · lucide-react-native · TanStack Query · Zustand ·
 expo-sqlite + Drizzle · Supabase · react-native-gifted-charts ·
 react-native-calendars · react-native-progress · date-fns
-
-⚠️ **Styling library is UNDECIDED.** The PRD assumed NativeWind v4, which predates
-SDK 57 / RN 0.86. Verify compatibility (or pick v5) before installing — do not just
-`npm install nativewind`. Ask first.
 
 ## Which rules file to read
 
