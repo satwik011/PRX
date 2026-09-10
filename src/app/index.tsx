@@ -1,98 +1,111 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ScrollView, Text, View } from 'react-native';
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+/**
+ * PHASE 0 SPIKE — throwaway.
+ * Proves Uniwind renders Nocturne tokens correctly on Expo SDK 57.
+ * Every block below maps to an item on the gotcha list in
+ * .claude/rules/tokens.md. Eyeball it against the mockup, then delete.
+ */
 
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
+function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
+    <View className="mb-card-gap">
+      <Text className="mb-1 font-heading text-micro uppercase tracking-[0.1em] text-primary">
+        {label}
+      </Text>
+      {children}
+    </View>
   );
 }
 
-export default function HomeScreen() {
+export default function Spike() {
   return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
+    <ScrollView
+      className="flex-1 bg-background"
+      contentContainerClassName="px-screen pt-screen-top pb-8">
+      {/* eyebrow + screen title — gotcha #11 */}
+      <Text className="mb-0.5 text-meta uppercase tracking-[0.08em] text-subtle">
+        Tuesday, 10 September
+      </Text>
+      <Text className="mb-6 font-heading text-h2 text-foreground">Token spike</Text>
 
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
+      {/* #1 card is a hairline, NOT a shadow — #12 display numeral */}
+      <Row label="Streak card · hairline + 44px numeral">
+        <View className="items-center gap-1.5 rounded-md border border-muted bg-card px-4 py-6">
+          <View className="h-8 w-8 rounded-pill bg-primary" />
+          <Text className="font-heading text-display leading-none text-foreground">12</Text>
+          <Text className="text-sm text-muted-foreground">day streak · best 21</Text>
+        </View>
+      </Row>
 
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
+      {/* #9 progress track is muted, fill is primary, both pill */}
+      <Row label="Progress · muted track, primary fill">
+        <View className="gap-2.5 rounded-md border border-muted bg-card p-2">
+          <View className="flex-row items-baseline justify-between">
+            <Text className="font-heading text-card-title text-foreground">Today</Text>
+            <Text className="font-heading text-h4 text-primary">72%</Text>
+          </View>
+          <View className="h-2 overflow-hidden rounded-pill bg-track">
+            <View className="h-full w-[72%] rounded-pill bg-primary" />
+          </View>
+        </View>
+      </Row>
 
-        {Platform.OS === 'web' && <WebBadge />}
-      </SafeAreaView>
-    </ThemedView>
+      {/* #2 primary is OUTLINED, not filled */}
+      <Row label="Buttons · primary is outlined, not filled">
+        <View className="gap-2">
+          <View className="items-center justify-center rounded-md border border-primary px-3 py-1.5">
+            <Text className="font-heading text-[14px] text-primary">Open today's tasks</Text>
+          </View>
+          <View className="items-center justify-center rounded-md border border-line px-3 py-1.5">
+            <Text className="font-heading text-[14px] text-foreground">Add task</Text>
+          </View>
+          <View className="items-center justify-center px-1 py-1.5">
+            <Text className="font-heading text-[14px] text-primary">Log out</Text>
+          </View>
+        </View>
+      </Row>
+
+      {/* #7 partial is amber, never green/red */}
+      <Row label="Day states · hit / partial / missed">
+        <View className="flex-row gap-1">
+          <View className="h-9 flex-1 items-center justify-center rounded-sm bg-primary">
+            <Text className="font-strong text-micro text-primary-foreground">8</Text>
+          </View>
+          <View className="h-9 flex-1 items-center justify-center rounded-sm bg-warning">
+            <Text className="font-strong text-micro text-warning-foreground">9</Text>
+          </View>
+          <View className="h-9 flex-1 items-center justify-center rounded-sm bg-muted">
+            <Text className="text-micro text-subtle">10</Text>
+          </View>
+          <View className="h-9 flex-1 items-center justify-center rounded-sm border-[1.5px] border-primary bg-muted">
+            <Text className="text-micro text-subtle">11</Text>
+          </View>
+        </View>
+      </Row>
+
+      {/* #8 three distinct muted weights must be visibly different */}
+      <Row label="Muted ladder · three distinct greys">
+        <View className="gap-1 rounded-md border border-muted bg-card p-2">
+          <Text className="text-body text-foreground">foreground — task name</Text>
+          <Text className="text-sm text-muted-foreground">muted — card description</Text>
+          <Text className="text-meta text-subtle">subtle — best 80 kg</Text>
+          <Text className="text-micro text-faint">faint — tab label</Text>
+        </View>
+      </Row>
+
+      <Row label="Tag · New PR">
+        <View className="flex-row">
+          <View className="rounded-[6px] bg-tag-bg px-2.5 py-0.5">
+            <Text className="text-meta text-tag-fg">New PR</Text>
+          </View>
+        </View>
+      </Row>
+
+      <Text className="mt-4 text-meta text-faint">
+        If this renders, Uniwind works on SDK 57. Check it against the mockup, then delete
+        this file.
+      </Text>
+    </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    flexDirection: 'row',
-  },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
-  },
-  heroSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
-  },
-  title: {
-    textAlign: 'center',
-  },
-  code: {
-    textTransform: 'uppercase',
-  },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
-  },
-});
