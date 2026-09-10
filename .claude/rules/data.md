@@ -74,6 +74,25 @@ and `sync_meta(key, value)`.
 8. The quote of the day is **not** in the database. Bundled in `lib/content/quotes.ts`,
    picked by day-of-year.
 
+## Where this lives (Phase 1)
+
+| Module | Holds |
+|---|---|
+| `src/db/schema.ts` | Drizzle SQLite tables + `LOCAL_USER_ID` |
+| `src/db/client.ts` | the one `openDatabaseSync` handle — **import only from `lib/repo/`** |
+| `src/lib/repo/mappers.ts` | the single place a wide nullable row narrows into the `Task` union |
+| `src/lib/repo/templates.ts` | `seedTemplatesIfEmpty` (idempotent), `listTemplates` |
+| `src/lib/repo/dayLogs.ts` | `getDayLog`, `applyTemplate` (snapshot copy), `updateTask`, `listDayLogs`, `daySummaries` |
+| `src/lib/repo/settings.ts` | `getSettings` (self-creating), `updateSettings` |
+| `drizzle/` | generated migrations — **commit these**, they are the schema history |
+
+Until auth lands in Phase 4 every row carries `user_id = 'local'` (`LOCAL_USER_ID`).
+
+`daySummaries(days)` returns one entry per day **including days with no log**, because the
+streak functions need an unbroken oldest-first sequence — a gap would silently end a streak.
+
+Regenerate migrations after any schema change: `npm run db:generate`.
+
 ## RLS
 
 Every synced table. `auth.uid() = user_id`; child tables go through the parent:

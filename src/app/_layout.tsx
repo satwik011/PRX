@@ -6,24 +6,46 @@ import {
   Inter_600SemiBold,
   useFonts,
 } from '@expo-google-fonts/inter';
+import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
+import { Text, View } from 'react-native';
+
+import migrations from '../../drizzle/migrations';
+import { db } from '@/db/client';
+import { seedTemplatesIfEmpty } from '@/lib/repo';
 
 SplashScreen.preventAutoHideAsync();
 
+function Centered({ children }: { children: React.ReactNode }) {
+  return (
+    <View className="flex-1 items-center justify-center bg-background px-screen">{children}</View>
+  );
+}
+
 export default function RootLayout() {
-  const [loaded] = useFonts({
-    Inter_400Regular,
-    Inter_500Medium,
-    Inter_600SemiBold,
-  });
+  const [fontsLoaded] = useFonts({ Inter_400Regular, Inter_500Medium, Inter_600SemiBold });
+  const { success, error } = useMigrations(db, migrations);
 
   useEffect(() => {
-    if (loaded) SplashScreen.hideAsync();
-  }, [loaded]);
+    if (success) void seedTemplatesIfEmpty();
+  }, [success]);
 
-  if (!loaded) return null;
+  useEffect(() => {
+    if (fontsLoaded && (success || error)) void SplashScreen.hideAsync();
+  }, [fontsLoaded, success, error]);
+
+  if (error) {
+    return (
+      <Centered>
+        <Text className="mb-1.5 font-heading text-h4 text-destructive">Migration failed</Text>
+        <Text className="text-center text-sm text-muted-foreground">{error.message}</Text>
+      </Centered>
+    );
+  }
+
+  if (!fontsLoaded || !success) return null;
 
   // Dark only — Nocturne has no light palette.
   return <Stack screenOptions={{ headerShown: false }} />;
