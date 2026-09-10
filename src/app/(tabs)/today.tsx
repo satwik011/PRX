@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 
@@ -94,7 +95,15 @@ export default function Today() {
               body={
                 locked
                   ? 'The plan locked before you picked a template today.'
-                  : 'Pick a day template above to load its tasks.'
+                  : 'Pick a template above, or set a weekly routine so this loads itself.'
+              }
+              action={
+                locked ? undefined : (
+                  <Button
+                    label="Set weekly routine"
+                    onPress={() => router.push('/settings/schedule')}
+                  />
+                )
               }
             />
           </View>

@@ -3,24 +3,26 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   dayKey,
   dayPercent,
+  weekdayOf,
   isPlanLocked,
   DEFAULT_SETTINGS,
   type DayLog,
   type NewTask,
   type Settings,
   type Task,
+  type Template,
 } from '@/lib/domain';
 import { PLAN_LOCK_ENABLED } from '@/lib/config';
 import {
   addTask as repoAddTask,
   applyTemplate,
   getDayLog,
+  getSchedule,
   getSettings,
   listDayLogsUpTo,
   listTemplates,
-  taskToColumns,
   updateTask,
-  type TemplateWithTasks,
+  type WeeklySchedule,
 } from '@/lib/repo';
 
 /**
@@ -34,18 +36,34 @@ export function useToday() {
   const day = dayKey();
   const [ready, setReady] = useState(false);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
-  const [templates, setTemplates] = useState<TemplateWithTasks[]>([]);
+  const [templates, setTemplates] = useState<Template[]>([]);
   const [log, setLog] = useState<DayLog | null>(null);
   /** Best weight per exercise on any day but today — drives the New PR badge. */
   const [previousBests, setPreviousBests] = useState<Record<string, number>>({});
+  const [scheduledTemplateId, setScheduledTemplateId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const [nextSettings, nextTemplates, nextLog, history] = await Promise.all([
+    const [nextSettings, nextTemplates, schedule, history] = await Promise.all([
       getSettings(),
       listTemplates(),
-      getDayLog(day),
+      getSchedule(),
       listDayLogsUpTo(day),
     ]);
+
+    /**
+     * If today has no plan yet and the weekly schedule names one, load it.
+     * The whole point of a routine is that Tuesday already knows it is legs —
+     * you should not have to tell the app every morning.
+     *
+     * Only ever fires when no log exists, so it can never overwrite a session
+     * in progress or a manual override.
+     */
+    let nextLog = await getDayLog(day);
+    const scheduled = schedule[weekdayOf(day)];
+    if (!nextLog && scheduled && nextTemplates.some((t) => t.id === scheduled)) {
+      nextLog = await applyTemplate(scheduled, day);
+    }
+    setScheduledTemplateId(scheduled);
 
     const bests: Record<string, number> = {};
     for (const entry of history) {
@@ -85,7 +103,7 @@ export function useToday() {
       if (!current) return current;
       const tasks = current.tasks.map((t) => (t.id === taskId ? ({ ...t, ...patch } as Task) : t));
       const updated = tasks.find((t) => t.id === taskId);
-      if (updated) void updateTask(taskId, taskToColumns(updated));
+      if (updated) void updateTask(updated);
       return { ...current, tasks };
     });
   }, []);
@@ -105,6 +123,7 @@ export function useToday() {
     settings,
     templates,
     log,
+    scheduledTemplateId,
     locked,
     percent,
     previousBests,

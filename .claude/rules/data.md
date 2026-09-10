@@ -69,9 +69,13 @@ and `sync_meta(key, value)`.
 5. **Soft deletes** (`deleted_at`) on templates and template tasks, so deletions sync
    instead of resurrecting.
 6. `day` is a **local calendar date**, not a timestamp. One `day_logs` row per user per day.
-7. Type-specific columns are nullable on one table by design — a task can be edited into a
+7. **`weekly_schedule` drives Today, it does not own it.** When today has no log and its
+   weekday names a template, `useToday` materialises that template once. It never fires
+   over an existing log, so it cannot overwrite a session in progress or a manual
+   override. Changing the schedule never rewrites a logged day.
+8. Type-specific columns are nullable on one table by design — a task can be edited into a
    different type, and every query is "all tasks on this day". Do not split into three tables.
-8. The quote of the day is **not** in the database. Bundled in `lib/content/quotes.ts`,
+9. The quote of the day is **not** in the database. Bundled in `lib/content/quotes.ts`,
    picked by day-of-year.
 
 ## Where this lives (Phase 1)
@@ -84,6 +88,7 @@ and `sync_meta(key, value)`.
 | `src/lib/repo/templates.ts` | `seedTemplatesIfEmpty` (idempotent), `listTemplates` |
 | `src/lib/repo/dayLogs.ts` | `getDayLog`, `applyTemplate` (snapshot copy), `updateTask`, `listDayLogs`, `daySummaries` |
 | `src/lib/repo/settings.ts` | `getSettings` (self-creating), `updateSettings` |
+| `src/lib/repo/schedule.ts` | `getSchedule` / `setScheduleDay` — weekday index (0 = Sunday) to template id |
 | `drizzle/` | generated migrations — **commit these**, they are the schema history |
 
 Until auth lands in Phase 4 every row carries `user_id = 'local'` (`LOCAL_USER_ID`).

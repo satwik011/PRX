@@ -1,10 +1,15 @@
-import { and, asc, eq, gte, lte } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, lte } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { LOCAL_USER_ID, dayLogs, dayLogTasks, templates } from '@/db/schema';
-import { dayKey, dayPercent, type DayLog, type DaySummary, type NewTask, type Task } from '@/lib/domain';
+import { dayKey, dayPercent, materializeTemplate,
+  type DayLog,
+  type DaySummary,
+  type NewTask,
+  type Task,
+} from '@/lib/domain';
 import { id } from '@/lib/id';
 import { rowToTask, taskToColumns } from './mappers';
-import { listTemplates } from './templates';
+import { getTemplate } from './templates';
 
 async function loadTasks(dayLogId: string) {
   const rows = await db
@@ -13,6 +18,41 @@ async function loadTasks(dayLogId: string) {
     .where(eq(dayLogTasks.dayLogId, dayLogId))
     .orderBy(asc(dayLogTasks.sort));
   return rows.map(rowToTask);
+}
+
+/**
+ * Tasks for many day logs in ONE query, grouped by log id.
+ *
+ * The previous version looped and queried per day — 365 round trips for a year,
+ * re-run on every tab focus. Invisible on SQLite at small sizes, a real stall at
+ * a year, and worse again on IndexedDB in the web build.
+ */
+async function loadTasksFor(dayLogIds: string[]): Promise<Map<string, Task[]>> {
+  const grouped = new Map<string, Task[]>();
+  if (!dayLogIds.length) return grouped;
+
+  const rows = await db
+    .select()
+    .from(dayLogTasks)
+    .where(inArray(dayLogTasks.dayLogId, dayLogIds))
+    .orderBy(asc(dayLogTasks.sort));
+
+  for (const row of rows) {
+    const list = grouped.get(row.dayLogId) ?? [];
+    list.push(rowToTask(row));
+    grouped.set(row.dayLogId, list);
+  }
+  return grouped;
+}
+
+function toDayLog(row: typeof dayLogs.$inferSelect, tasks: Task[]): DayLog {
+  return {
+    id: row.id,
+    day: row.day,
+    templateId: row.templateId,
+    lockedAt: row.lockedAt,
+    tasks,
+  };
 }
 
 export async function getDayLog(day: string = dayKey()): Promise<DayLog | null> {
@@ -39,8 +79,9 @@ export async function getDayLog(day: string = dayKey()): Promise<DayLog | null> 
  * Replaces any existing plan for that day.
  */
 export async function applyTemplate(templateId: string, day: string = dayKey()): Promise<DayLog> {
-  const template = (await listTemplates()).find((t) => t.id === templateId);
+  const template = await getTemplate(templateId);
   if (!template) throw new Error(`No template ${templateId}`);
+  const materialized = materializeTemplate(template.tasks);
 
   const now = Date.now();
   const existing = await getDayLog(day);
@@ -63,23 +104,17 @@ export async function applyTemplate(templateId: string, day: string = dayKey()):
     });
   }
 
-  await db.insert(dayLogTasks).values(
-    template.tasks.map((task, sort) => ({
-      id: id(),
-      dayLogId,
-      sourceTaskId: task.id,
-      name: task.name,
-      type: task.type,
-      sort,
-      done: task.type === 'check' ? false : null,
-      target: task.type === 'numeric' ? task.target : null,
-      value: task.type === 'numeric' ? 0 : null,
-      unit: task.unit,
-      weight: task.type === 'pr' ? 0 : null,
-      reps: task.type === 'pr' ? 0 : null,
-      updatedAt: now,
-    })),
-  );
+  if (materialized.length) {
+    await db.insert(dayLogTasks).values(
+      materialized.map(({ sourceTaskId, task }, sort) => ({
+        id: id(),
+        dayLogId,
+        sourceTaskId,
+        ...taskToColumns({ ...task, id: id(), sort } as Task),
+        updatedAt: now,
+      })),
+    );
+  }
 
   await db.update(templates).set({ lastUsedOn: day }).where(eq(templates.id, templateId));
 
@@ -117,15 +152,15 @@ export async function addTask(day: string, draft: NewTask): Promise<Task> {
   return task;
 }
 
-/** Patch one task in place. The main write path for the Today screen. */
-export async function updateTask(
-  taskId: string,
-  patch: Partial<ReturnType<typeof taskToColumns>>,
-): Promise<void> {
+/**
+ * Persist one task. Takes a domain Task, not a column patch — column mapping is
+ * the repository's business, and callers must never import `taskToColumns`.
+ */
+export async function updateTask(task: Task): Promise<void> {
   await db
     .update(dayLogTasks)
-    .set({ ...patch, updatedAt: Date.now() })
-    .where(eq(dayLogTasks.id, taskId));
+    .set({ ...taskToColumns(task), updatedAt: Date.now() })
+    .where(eq(dayLogTasks.id, task.id));
 }
 
 export async function listDayLogs(from: string, to: string): Promise<DayLog[]> {
@@ -135,17 +170,8 @@ export async function listDayLogs(from: string, to: string): Promise<DayLog[]> {
     .where(and(eq(dayLogs.userId, LOCAL_USER_ID), gte(dayLogs.day, from), lte(dayLogs.day, to)))
     .orderBy(asc(dayLogs.day));
 
-  const result: DayLog[] = [];
-  for (const row of rows) {
-    result.push({
-      id: row.id,
-      day: row.day,
-      templateId: row.templateId,
-      lockedAt: row.lockedAt,
-      tasks: await loadTasks(row.id),
-    });
-  }
-  return result;
+  const tasks = await loadTasksFor(rows.map((r) => r.id));
+  return rows.map((row) => toDayLog(row, tasks.get(row.id) ?? []));
 }
 
 /**
@@ -160,17 +186,8 @@ export async function listDayLogsUpTo(day: string = dayKey()): Promise<DayLog[]>
     .where(and(eq(dayLogs.userId, LOCAL_USER_ID), lte(dayLogs.day, day)))
     .orderBy(asc(dayLogs.day));
 
-  const result: DayLog[] = [];
-  for (const row of rows) {
-    result.push({
-      id: row.id,
-      day: row.day,
-      templateId: row.templateId,
-      lockedAt: row.lockedAt,
-      tasks: await loadTasks(row.id),
-    });
-  }
-  return result;
+  const tasks = await loadTasksFor(rows.map((r) => r.id));
+  return rows.map((row) => toDayLog(row, tasks.get(row.id) ?? []));
 }
 
 export async function daySummaries(days: string[]): Promise<DaySummary[]> {

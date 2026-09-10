@@ -33,9 +33,8 @@ Restyle once against `tokens.md`, then never touch again.
 | `HeatmapLegend` | — | History |
 | `HistoryRow` | `label, sublabel, percent, threshold` | History |
 | `PRGroupCard` | `name, bestLabel, history[]` | PRs |
-| `TemplateCard` | `template, taskCount, lastUsed, onOpen, onDuplicate` | Templates |
-| `TemplateEditor` | `template, onSave` | Template detail |
-| `TaskEditorRow` | `task, onChange, onDelete` | TemplateEditor, Add-task |
+| `TemplateCard` | `template, onOpen, onDuplicate` | Templates library |
+| `TaskEditorRow` | `task, onChange, onDelete` | Template detail |
 | `TagPill` | `variant: accent \| accent-2 \| neutral \| outline` | Today (New PR) |
 | `FadedRule` | `inset=48` | History, PRs |
 | `EmptyState` | `icon, title, body, action?` | History, PRs, Today, Templates |

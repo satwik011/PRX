@@ -1,5 +1,5 @@
 import { Pressable, ScrollView, Text } from 'react-native';
-import type { TemplateWithTasks } from '@/lib/repo';
+import type { Template } from '@/lib/domain';
 
 export function TemplateChipRow({
   templates,
@@ -7,7 +7,7 @@ export function TemplateChipRow({
   disabled,
   onSelect,
 }: {
-  templates: TemplateWithTasks[];
+  templates: Template[];
   activeId: string | null;
   disabled?: boolean;
   onSelect: (id: string) => void;

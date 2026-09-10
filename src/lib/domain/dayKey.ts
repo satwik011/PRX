@@ -15,6 +15,19 @@ export function dayKey(date: Date = new Date()): string {
   return `${y}-${m}-${d}`;
 }
 
+/** 0 = Sunday, matching Date#getDay(). */
+export const WEEKDAYS = [
+  'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday',
+] as const;
+
+export const WEEKDAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
+
+/** Weekday index for a YYYY-MM-DD key, in local time. */
+export function weekdayOf(key: string): number {
+  const [y, m, d] = key.split('-').map(Number);
+  return new Date(y, m - 1, d).getDay();
+}
+
 /** Shift a day key by whole days, staying in local time. */
 export function addDaysToKey(key: string, days: number): string {
   const [y, m, d] = key.split('-').map(Number);

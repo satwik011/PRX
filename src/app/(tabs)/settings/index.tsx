@@ -62,6 +62,15 @@ export default function Settings() {
         />
       </SectionCard>
 
+      <SectionCard className="mb-card-gap" title="Weekly routine">
+        <Text className="text-sm text-muted-foreground">
+          Assign a template to each weekday and Today loads its own plan — no picking
+          every morning.
+        </Text>
+        <Button full label="Edit schedule" onPress={() => router.push('/settings/schedule')} />
+        <Button full label="Manage templates" onPress={() => router.push('/settings/templates')} />
+      </SectionCard>
+
       <SectionCard className="mb-card-gap" title="Units">
         <Text className="text-sm text-muted-foreground">
           Weights are recorded in {settings.unitSystem}. A kg/lb toggle arrives later.

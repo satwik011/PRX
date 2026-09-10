@@ -1,4 +1,12 @@
-import { index, integer, real, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import {
+  index,
+  integer,
+  primaryKey,
+  real,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from 'drizzle-orm/sqlite-core';
 
 /**
  * SQLite mirror of the Postgres model in docs/schema.dbml.
@@ -91,6 +99,21 @@ export const dayLogTasks = sqliteTable(
     index('day_log_tasks_log_sort').on(t.dayLogId, t.sort),
     index('day_log_tasks_type_name').on(t.type, t.name),
   ],
+);
+
+/**
+ * Which template runs on which weekday. 0 = Sunday, matching Date#getDay().
+ * A weekday with no row is unscheduled — Today falls back to manual picking.
+ */
+export const weeklySchedule = sqliteTable(
+  'weekly_schedule',
+  {
+    userId: text('user_id').notNull(),
+    weekday: integer('weekday').notNull(),
+    templateId: text('template_id'),
+    updatedAt: integer('updated_at').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.weekday] })],
 );
 
 /** Local only — never synced. Every write appends here for the Phase 4 worker. */
