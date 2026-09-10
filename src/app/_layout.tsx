@@ -6,15 +6,13 @@ import {
   Inter_600SemiBold,
   useFonts,
 } from '@expo-google-fonts/inter';
-import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import migrations from '../../drizzle/migrations';
-import { db } from '@/db/client';
+import { useDatabaseReady } from '@/db/ready';
 import { seedTemplatesIfEmpty } from '@/lib/repo';
 
 SplashScreen.preventAutoHideAsync();
@@ -27,7 +25,7 @@ function Centered({ children }: { children: React.ReactNode }) {
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({ Inter_400Regular, Inter_500Medium, Inter_600SemiBold });
-  const { success, error } = useMigrations(db, migrations);
+  const { success, error } = useDatabaseReady();
 
   useEffect(() => {
     if (success) void seedTemplatesIfEmpty();
@@ -40,7 +38,7 @@ export default function RootLayout() {
   if (error) {
     return (
       <Centered>
-        <Text className="mb-1.5 font-heading text-h4 text-destructive">Migration failed</Text>
+        <Text className="mb-1.5 font-heading text-h4 text-destructive">Database failed to start</Text>
         <Text className="text-center text-sm text-muted-foreground">{error.message}</Text>
       </Centered>
     );

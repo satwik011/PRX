@@ -2,6 +2,7 @@ import { ScreenScroll } from '@/components/app/screen-scroll';
 import { router } from 'expo-router';
 import { Text, View } from 'react-native';
 
+import { BackupSection } from '@/components/app/backup-section';
 import { ScreenHeader } from '@/components/app/screen-header';
 import { SectionCard } from '@/components/app/section-card';
 import { Button } from '@/components/ui/button';
@@ -69,6 +70,8 @@ export default function Settings() {
         <Button full label="Edit schedule" onPress={() => router.push('/settings/schedule')} />
         <Button full label="Manage templates" onPress={() => router.push('/settings/templates')} />
       </SectionCard>
+
+      <BackupSection onRestored={() => void reload()} />
 
       <SectionCard className="mb-card-gap" title="Units">
         <Text className="text-sm text-muted-foreground">

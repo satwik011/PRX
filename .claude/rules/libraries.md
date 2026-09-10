@@ -25,6 +25,29 @@ npx expo install expo-secure-store
 `react-native-gifted-charts` documents `react-native-linear-gradient`. On Expo use
 **`expo-linear-gradient`** instead — installing the bare one will break the build.
 
+## Web database — sql.js, NOT expo-sqlite's web build
+
+```
+sql.js ^1.14.2 + @types/sql.js · drizzle-orm/sql-js
+```
+
+expo-sqlite's web build needs `SharedArrayBuffer` → cross-origin isolation →
+COOP/COEP on dev server and host → `COEP: credentialless`, **which Safari does not
+support**. iOS Safari is the target. It is also documented as alpha.
+
+sql.js is single-threaded WASM: none of that applies. `public/sql-wasm.wasm` is
+copied by a `postinstall` script so it stays same-origin and offline-cacheable.
+
+**Do not add COOP/COEP headers.** Nothing needs them, and `require-corp` breaks
+the moment a cross-origin asset appears. See `data.md`.
+
+## Removed from the starter template
+
+`@expo/ui` · `expo-glass-effect` · `expo-symbols` · `expo-image` ·
+`expo-web-browser` · `expo-device` — all unused, all compiled into every build.
+Two of them (`@expo/ui`, `expo-glass-effect`) wrap iOS 26 APIs. Don't reinstate
+one without a use for it.
+
 ## Styling — Uniwind, NOT NativeWind
 
 NativeWind is out. v5 is documented as pre-release and "not intended for production
@@ -167,6 +190,7 @@ stay **solid**.
 | `nativewind` | v5 pre-release, v4 too old for RN 0.86. Superseded by Uniwind |
 | `victory-native` | needs Skia + Reanimated + Gesture Handler; you compose charts from primitives |
 | `react-native-chart-kit` | largely unmaintained; its `ContributionGraph` can't render day-number cells |
+| expo-sqlite **on web** | needs SharedArrayBuffer + cross-origin isolation; Safari can't. sql.js replaces it |
 | `react-native-gifted-charts` | dropped in Phase 3 — its layout origin could not be aligned with our track pills |
 | `react-native-calendars` | dropped in Phase 3 — the heatmap is a flat N-day sequence, not a browsable calendar |
 | `react-native-progress` | dropped in Phase 2 — `ProgressBar` is eight lines of `View`, and the library's default 1px border was a documented footgun |

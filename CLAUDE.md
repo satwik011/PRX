@@ -2,24 +2,29 @@
 
 @AGENTS.md
 
-Offline-first gym / habit tracker. React Native + Expo. Dark theme only.
-**Ships to iOS as a PWA** (Phase 7), so from Phase 4 on every storage decision must
-survive a second backend — see `.claude/rules/data.md`, "Targeting web".
+Offline-first gym / habit tracker. Expo + React Native. Dark theme only.
+
+**The PWA is the primary target.** Native iOS is blocked — Xcode 16.1 cannot build
+SDK 57, and TestFlight is $99/yr — so the browser is how this reaches phones.
+Android native still works. `npx expo start --web` is the main dev loop.
 Design system is **Nocturne**, from a Claude Design mockup — match it exactly.
 
 ## Stack
 
 Installed: **Expo SDK 57** · React Native 0.86.3 · React 19.2.3 · expo-router ·
-TypeScript 6 strict. Path alias `@/*` → `./src/*`. App code lives in `src/`.
+TypeScript 6 strict · Uniwind + Tailwind v4 · expo-sqlite + Drizzle (native) ·
+**sql.js + IndexedDB (web)** · date-fns · lucide-react-native · vitest.
+Path alias `@/*` → `./src/*`. App code lives in `src/`.
 
-Styling: **Uniwind 1.12.0 + Tailwind v4**, verified on SDK 57. NativeWind is not used.
-Tailwind v4 is CSS-first — there is **no `tailwind.config.js`**; tokens live in the
-`@theme` block of `src/global.css`. Fonts: Inter 400/500/600.
+Storage is the only thing that differs per platform, and the split stops at
+`src/db/` — see `.claude/rules/data.md`.
 
-Planned, **not yet installed** — check `libraries.md` before adding any of these:
-react-native-reusables · lucide-react-native · TanStack Query · Zustand ·
-expo-sqlite + Drizzle · Supabase · react-native-gifted-charts ·
-react-native-calendars · react-native-progress · date-fns
+Styling: **Uniwind + Tailwind v4**, CSS-first — there is **no `tailwind.config.js`**;
+tokens live in the `@theme` block of `src/global.css`. Fonts: Inter 400/500/600.
+
+Not installed, and mostly not wanted — `libraries.md` records what was dropped and
+why: react-native-reusables, react-native-progress, react-native-calendars,
+react-native-gifted-charts, NativeWind. **Supabase** arrives in Phase 4.
 
 ## Which rules file to read
 
@@ -44,7 +49,9 @@ Read only what the task needs. Do not read `docs/` — those are for the human.
    *exported types* must be domain types too, not Drizzle row types. Two known
    violations are listed in `data.md`; do not add a third.
 3. **All reads come from SQLite.** No network in a render path, ever.
-4. **All writes go to SQLite first**, then append to `outbox`. Never write straight to Supabase.
+4. **All writes go through `lib/repo`.** On web, `db.insert/update/delete` are proxied
+   so the database is exported to IndexedDB after each write — a call outside
+   `lib/repo` escapes that hook and the write is lost on refresh.
 5. **`day_log_tasks` is a snapshot, not a reference.** Task name/type/target/unit are copied
    from the template at apply time. Never refactor this into a join — it would make logged
    history mutable when a template is edited.
@@ -82,12 +89,15 @@ Used once → `features/<screen>/`.
 ## Commands
 
 ```bash
-npm install             # after every clone / pull that touches package.json
-npx expo start          # dev server
-npx expo run:ios        # local dev-client build (generates ios/ via prebuild)
-npm run typecheck       # tsc --noEmit
-npm run lint
+npm install             # after any clone / pull touching package.json
+npm start -- --web      # PRIMARY dev loop (prestart regenerates migrations)
+npm start -- -c         # clear cache; needed after metro.config or global.css changes
+npm run typecheck       # tsc --noEmit — run before handing over any change
+npm test                # 56 domain tests
+npx expo run:android    # native Android still builds
 ```
+
+`npx expo run:ios` does **not** work on this machine (Xcode 16.1 vs SDK 57).
 
 Native folders `ios/` and `android/` are **generated and gitignored** (Continuous Native
 Generation). Never commit them; never hand-edit them — change `app.json` plugins instead.

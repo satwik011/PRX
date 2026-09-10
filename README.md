@@ -6,14 +6,34 @@ Offline-first gym / habit tracker. React Native + Expo, dark theme only.
 - **Design decisions:** `docs/design.md` · current tokens: `.claude/rules/tokens.md`
 - **Data model:** `docs/schema.dbml` (paste into [dbdiagram.io](https://dbdiagram.io))
 
+PRX runs as a **PWA** — that is the primary target. Android native also builds.
+Native iOS does not build on this machine (Xcode 16.1 vs Expo SDK 57).
+
 ## Setup on a new machine
 
 ```bash
 git clone <repo-url> PRX && cd PRX
 nvm use            # Node 22, per .nvmrc
-npm install
-npx expo start     # then press i / a, or scan the QR
+npm install        # postinstall copies sql-wasm.wasm into public/
+npm start -- --web # the main dev loop
 ```
+
+`prestart` regenerates Drizzle migrations, so `npm start` is preferred over
+`npx expo start` — the latter skips npm scripts and the app will fail to boot on a
+missing `drizzle/` folder.
+
+## Storage
+
+| | Native | Web |
+|---|---|---|
+| Engine | expo-sqlite | sql.js (WASM) |
+| Persistence | file on disk | whole DB blob in IndexedDB |
+
+Metro picks `.web.ts` automatically. The split stops at `src/db/` — every repo
+function, all domain logic and all screens are shared.
+
+Data lives only on the device until Phase 8 adds accounts. **Settings → Backup**
+exports a JSON file; that is the only safety net for now.
 
 That's the whole checkout. Nothing else is machine-specific — `ios/` and `android/`
 are generated, not committed.

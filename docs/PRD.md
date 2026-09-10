@@ -167,6 +167,29 @@ of implementation.
 
 | Phase | Scope | Done when |
 |---|---|---|
+| **0** ✅ | Styling spike — Uniwind + Tailwind v4 + Inter on SDK 57 | Done · `0e1b0c7` |
+| **1** ✅ | Data spine — Drizzle schema, repo layer, 48 domain tests | Done |
+| **2** ✅ | Today screen — three task types, template chips, plan lock | Done |
+| **3** ✅ | Read screens — Dashboard, History, PRs, 5-tab shell | Done |
+| **4** ✅ | Seal the seam — repo interface speaks domain types, N+1 killed | Done |
+| **5** ✅ | **Weekly schedule** + template CRUD; iOS safe-area fixes; backup/restore | Done |
+| **6** ✅ | **PWA runs** — sql.js + IndexedDB on web, no cross-origin isolation | Done · app boots and persists in the browser |
+| **7** | **Ship the PWA** — manifest, icons, service worker, offline shell, static hosting, install walkthrough | You add it to your iPhone home screen and train from it |
+| **8** | **Supabase** — accounts, RLS, outbox, sync | Two devices converge; friends can be given a link without risking their data |
+| **9** | Polish — gotcha-list pass, empty states, delete `/tokens` and the dev seeder | The 13-item list in `tokens.md` passes on a real phone |
+
+**The order changed twice, both times because reality pushed back.**
+
+Sync was going to be Phase 4, then a prerequisite for the PWA. It is now *after*
+shipping, because Settings → Backup covers a single disciplined user, and getting
+PRX onto a phone this week beats getting it there correctly next month. Supabase
+becomes mandatory again the moment anyone else gets a link — friends will not
+remember to export.
+
+Templates moved ahead of everything because a routine the app already knows beats
+picking a template every morning, and because friends do not train your split.
+
+---|---|---|
 | **0** ✅ | Styling spike: Uniwind + Tailwind v4 + Inter, Nocturne `@theme`, `theme/tokens.ts`, token reference screen | **Done** — commit `0e1b0c7`, verified rendering on device |
 | **1** | Data spine, no UI: expo-sqlite + Drizzle, `lib/repo/`, `lib/domain/` + unit tests, seed templates | `npm test` green, especially the streak edge cases |
 | **2** | Today screen, full vertical slice: three task types, template chips, progress, add-task dialog, plan lock, real persistence | You log a real session on your phone and it survives a restart |
@@ -179,12 +202,16 @@ of implementation.
 Sync sits deliberately late: the app is fully useful before it, and it is the phase most
 likely to consume a week quietly.
 
-**Distribution decided the endgame.** Most of the friends we want on this are on iPhone,
-and Apple's $99/yr Developer Program is the only route to TestFlight — so the app ships
-as a **PWA** instead. That makes Phase 4 mandatory rather than optional: browser storage
-is evictable, so Supabase is what stops a friend losing a 40-day streak. It also means
-Phase 4 must be written knowing a second storage backend is coming — see
-`.claude/rules/data.md`, "Targeting web".
+**Distribution decided the endgame, then the toolchain forced it.** Most friends are on
+iPhone; TestFlight is $99/yr; and then native iOS turned out to be unbuildable here at
+all — Xcode 16.1 cannot compile SDK 57, and updating means a 15GB download the machine
+may not support. The PWA stopped being the eventual plan and became the only plan.
+
+Getting there cost one more decision. `expo-sqlite` on web needs `SharedArrayBuffer`,
+which needs cross-origin isolation, which needs a `COEP` value **Safari does not
+support** — on the platform the whole exercise exists to reach. `sql.js` (single-threaded
+WASM, persisted into IndexedDB) needs none of it, and Drizzle ships a driver for it, so
+one file changed instead of the repo layer. See `.claude/rules/data.md`.
 
 Size is not a concern: a year of one person's training is roughly 0.4 MB in SQLite and
 under 1 MB in IndexedDB, against an iOS PWA quota of ~50 MB and a Supabase free tier of

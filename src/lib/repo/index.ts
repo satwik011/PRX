@@ -1,3 +1,4 @@
+export * from './backup';
 export * from './dayLogs';
 export * from './mappers';
 export * from './schedule';

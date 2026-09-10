@@ -98,56 +98,85 @@ streak functions need an unbroken oldest-first sequence — a gap would silently
 
 Regenerate migrations after any schema change: `npm run db:generate`.
 
-## Targeting web (applies from Phase 4 on)
+## Web storage — sql.js over IndexedDB
 
-PRX ships a PWA in Phase 7 — Apple's $99/yr made TestFlight a non-starter.
-**Supabase is the only backend.** The same client, Postgres, auth and RLS serve
-React Native and the browser. There is no second API to build.
+**PRX ships as a PWA, and web is the primary target.** Native iOS is blocked
+(Xcode 16.1 cannot build SDK 57) and TestFlight costs $99/yr, so the browser is
+how this reaches phones. Android native still works.
 
-What differs per platform:
+### Why not expo-sqlite's web build
+
+It needs `SharedArrayBuffer`, which requires the page to be cross-origin
+isolated: COOP/COEP headers on the dev server *and* the host, no cross-origin
+asset ever, and `COEP: credentialless` — which **Safari does not support**.
+iOS Safari is the delivery target. Expo also documents its web support as alpha.
+Too long a chain to hang the only delivery mechanism on.
+
+`sql.js` is SQLite compiled to **single-threaded** WASM. No SharedArrayBuffer,
+no isolation, no headers, works in Safari.
+
+### The split
 
 | | Native | Web |
 |---|---|---|
-| Local cache | expo-sqlite + Drizzle | IndexedDB |
-| Session storage | expo-secure-store | `localStorage` |
+| Engine | expo-sqlite | sql.js (WASM) |
+| Drizzle driver | `drizzle-orm/expo-sqlite` | `drizzle-orm/sql-js` |
+| Persistence | file on disk | whole DB exported into IndexedDB as one blob |
+| Migrations | drizzle expo migrator | applied by hand from the journal, tracked in `__drizzle_migrations` |
+| Backup file I/O | expo-sharing + document-picker | Blob download + `<input type=file>` |
 
-Split them with Metro platform extensions — `dayLogs.web.ts` resolves over
-`dayLogs.ts` automatically, so callers import one path and get the right build.
-No abstraction layer. But both files must satisfy the same signature, which means:
+| File | Role |
+|---|---|
+| `src/db/client.ts` / `.web.ts` | the one database handle per platform |
+| `src/db/ready.ts` / `.web.ts` | `useDatabaseReady()` — migrations, and boot on web |
+| `src/db/persist.web.ts` | IndexedDB blob read/write |
+| `src/lib/backup/file.ts` / `.web.ts` | export/import plumbing |
 
-### The repo's INTERFACE must speak domain types only
+Metro resolves `.web.ts` over `.ts` automatically. **Every repo function, all
+business logic and the whole domain layer are shared** — the platform split stops
+at `src/db/` and the two backup files. That is what sealing the repo interface
+bought.
 
-Its *implementation* may use Drizzle freely. Its exported types and parameters may
-not. **Two leaks exist today and must be closed before the web adapter is written:**
+`sql.js` loads `public/sql-wasm.wasm`, copied there by a `postinstall` script so
+it is same-origin and cacheable offline.
 
-1. `TemplateWithTasks.tasks` is typed `(typeof templateTasks.$inferSelect)[]` — a
-   Drizzle row type. `template-chip-row.tsx`, a component, imports it.
-2. `updateTask(taskId, patch)` takes `Partial<ReturnType<typeof taskToColumns>>`,
-   so `use-today.ts` imports `taskToColumns` and does column mapping in a hook.
+### ⚠️ Writes are not durable until persisted
 
-Both violate CLAUDE.md rule 2 in spirit — storage shapes have reached hooks and
-components. They are cheap to fix now and expensive once a second backend exists.
+sql.js holds the database in memory. `db` in `client.web.ts` is a Proxy that hooks
+the `then` of `insert` / `update` / `delete` builders, so the export to IndexedDB
+fires **after** the statement resolves — scheduling it when the builder is created
+would race the write it exists to capture. Debounced 400ms, and flushed on
+`pagehide` and `visibilitychange`.
 
-### The local database becomes a CACHE
+**Never call `db.insert` / `update` / `delete` outside `lib/repo`.** That is
+precisely how a write escapes the persist hook and vanishes on refresh.
+`src/lib/dev/seedHistory.ts` is the one exception, and it is dev-only.
 
-Once Supabase is the source of record, the local copy is disposable. Browser
-storage is evictable by design — roughly 50 MB on iOS, cleared under device storage
-pressure, with contested 7-day ITP rules. **Eviction must degrade to a re-download,
-never to data loss.** Nothing may exist only in the local cache: it is either
-already synced or sitting in `outbox`.
+### No COOP/COEP headers — deliberately
 
-### The anon key is public on the web
+Do not add them "for SQLite". Nothing needs them now, and `require-corp` would
+break silently the moment any cross-origin asset (a CDN font, an image) is added.
+`metro.config.js` carries a comment saying so.
 
-It ships in the JS bundle, readable in devtools. **RLS is the entire security
-boundary** — not defence in depth, the only defence. Test every policy as a
-non-owner before a single friend opens the URL.
+### Still true from before
 
-## Known issue — fix during Phase 4
+Supabase remains the one backend for both platforms (Phase 4). The anon key is
+public in a web bundle, so **RLS is the entire security boundary** — test every
+policy as a non-owner before anyone else gets a link. Browser storage is
+evictable, so the local database is a cache: eviction must degrade to a
+re-download, never to data loss. Until Supabase lands, Settings → Backup is the
+only safety net.
 
-`listDayLogs` and `listDayLogsUpTo` run one query per day log to load its tasks:
-**365 queries for a year of history**, and `useHistory` re-runs it on every tab
-focus. Replace with a single `IN` query or a join. Invisible at today's volume, a
-visible stall at a year, and worse on IndexedDB than SQLite.
+## Debt cleared before Phase 5
+
+~~`listDayLogs` runs one query per day log~~ — **fixed.** Both list functions now
+load every day's tasks in one `inArray` query. `listTemplates` got the same
+treatment.
+
+~~Two Drizzle types leak past the repo interface~~ — **fixed.** `TemplateWithTasks`
+became the domain type `Template`, and `updateTask` now takes a domain `Task`
+instead of a column patch. No storage type appears anywhere in `src/hooks`,
+`src/components` or `src/app`.
 
 ## RLS
 
