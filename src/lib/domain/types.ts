@@ -29,6 +29,16 @@ export interface PRTask extends TaskBase {
 
 export type Task = CheckTask | NumericTask | PRTask;
 
+/**
+ * `Omit<Union, K>` collapses a union down to its SHARED keys — so
+ * `Omit<Task, 'id'>` loses `done`, `target` and `weight` entirely. Distributing
+ * over the union first keeps each member's own fields.
+ */
+export type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
+
+/** A task before it has been persisted: no id, and sort is assigned on insert. */
+export type NewTask = DistributiveOmit<Task, 'id' | 'sort'>;
+
 export interface DayLog {
   id: string;
   /** Local calendar date, YYYY-MM-DD. See dayKey(). */

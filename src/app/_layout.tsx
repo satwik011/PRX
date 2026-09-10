@@ -48,5 +48,10 @@ export default function RootLayout() {
   if (!fontsLoaded || !success) return null;
 
   // Dark only — Nocturne has no light palette.
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#161826' } }}>
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="tokens" options={{ presentation: 'modal' }} />
+    </Stack>
+  );
 }

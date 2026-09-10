@@ -173,7 +173,7 @@ of implementation.
 | **3** | Read screens: Dashboard, History, PRs. Charts land here (gifted-charts, calendars, progress) | Numbers match hand-checked fixtures |
 | **4** | Accounts & sync: Supabase, RLS, auth screens, outbox, sync worker | Two devices converge; airplane mode changes nothing |
 | **5** | Templates & settings: library CRUD + duplicate, settings screens | Editing a template leaves logged days byte-identical |
-| **6** | Polish & ship: gotcha-list pass, empty/offline states, icons, EAS build | The 14-item list in `tokens.md` passes on a real device |
+| **6** | Polish & ship: gotcha-list pass, empty/offline states, icons, EAS build | The 13-item list in `tokens.md` passes on a real device |
 
 Sync sits deliberately late: the app is fully useful before it, and it is the phase most
 likely to consume a week quietly.

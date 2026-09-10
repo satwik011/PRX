@@ -13,9 +13,13 @@ uniwind ^1.12.0 · tailwindcss ^4.3.3 · @expo-google-fonts/inter ^0.4.2
 Still to add, per phase:
 
 ```bash
-npx expo install react-native-gifted-charts react-native-svg expo-linear-gradient
-npx expo install react-native-calendars react-native-progress
-npx expo install expo-sqlite expo-secure-store
+# Phase 3 (installed)
+npx expo install react-native-svg expo-linear-gradient lucide-react-native
+# react-native-svg is a peer of lucide-react-native — keep it even though
+# gifted-charts is gone.
+
+# Phase 4
+npx expo install expo-secure-store
 ```
 
 `react-native-gifted-charts` documents `react-native-linear-gradient`. On Expo use
@@ -62,7 +66,19 @@ import * as Progress from 'react-native-progress';
 />
 ```
 
-## react-native-gifted-charts — week bar chart
+## react-native-gifted-charts — NOT USED
+
+Dropped in Phase 3 on first render. It positions bars from its own
+`spacing`/`initialSpacing` origin and reserves y-axis room even with the axis
+hidden, so its bars never aligned with the flexbox track pills we had to draw
+behind them (gotcha: it has no unfilled track). Overlaying two independent
+layout systems was the bug.
+
+`WeekBarChart` is now one flex row of seven columns — track, fill and label laid
+out by the same pass, so they cannot drift. The old props are kept below in case
+a genuinely chart-shaped need appears (a PR trend line, say).
+
+## react-native-gifted-charts — if it ever comes back
 
 ```tsx
 <BarChart
@@ -95,7 +111,18 @@ Prop names that get hallucinated: it is `frontColor` (not `color`), `barBorderRa
 **gifted-charts has no unfilled track.** Render 7 absolutely-positioned 16×60 radius-999
 `muted` pills behind the chart. The track is part of the design — do not skip it.
 
-## react-native-calendars — history heatmap
+## react-native-calendars — NOT USED
+
+Dropped in Phase 3. The library earns its place when you need month navigation
+and real calendar semantics. Our History range is "the last N days ending today",
+which is a flat sequence the library would fight — and its `dayComponent` would
+still be doing all the drawing. `CalendarHeatmap` is a hand-built flex-wrap grid
+with a computed leading pad.
+
+Revisit only if month-by-month browsing is wanted. The original guidance follows
+for that case.
+
+## react-native-calendars — if it ever comes back
 
 `<Calendar>` for week/month, `<CalendarList horizontal pastScrollRange={3} />` for 90 days.
 The library owns the month grid, leading blanks and weekday headers; `dayComponent` owns the look.
@@ -140,5 +167,7 @@ stay **solid**.
 | `nativewind` | v5 pre-release, v4 too old for RN 0.86. Superseded by Uniwind |
 | `victory-native` | needs Skia + Reanimated + Gesture Handler; you compose charts from primitives |
 | `react-native-chart-kit` | largely unmaintained; its `ContributionGraph` can't render day-number cells |
-| any charting for progress bars | `Progress.Bar` is one line |
+| `react-native-gifted-charts` | dropped in Phase 3 — its layout origin could not be aligned with our track pills |
+| `react-native-calendars` | dropped in Phase 3 — the heatmap is a flat N-day sequence, not a browsable calendar |
+| `react-native-progress` | dropped in Phase 2 — `ProgressBar` is eight lines of `View`, and the library's default 1px border was a documented footgun |
 | a chart lib for the tab bar / rules | plain `View` and `LinearGradient` |

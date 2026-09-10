@@ -1,7 +1,7 @@
 import { and, asc, eq, gte, lte } from 'drizzle-orm';
 import { db } from '@/db/client';
-import { LOCAL_USER_ID, dayLogs, dayLogTasks } from '@/db/schema';
-import { dayKey, dayPercent, type DayLog, type DaySummary } from '@/lib/domain';
+import { LOCAL_USER_ID, dayLogs, dayLogTasks, templates } from '@/db/schema';
+import { dayKey, dayPercent, type DayLog, type DaySummary, type NewTask, type Task } from '@/lib/domain';
 import { id } from '@/lib/id';
 import { rowToTask, taskToColumns } from './mappers';
 import { listTemplates } from './templates';
@@ -86,7 +86,38 @@ export async function applyTemplate(templateId: string, day: string = dayKey()):
   return (await getDayLog(day))!;
 }
 
-/** Patch one task in place. The only write path the Today screen needs. */
+/** Create today's log if it does not exist yet. Returns it either way. */
+export async function ensureDayLog(day: string = dayKey()): Promise<DayLog> {
+  const existing = await getDayLog(day);
+  if (existing) return existing;
+
+  const now = Date.now();
+  await db.insert(dayLogs).values({
+    id: id(),
+    userId: LOCAL_USER_ID,
+    day,
+    templateId: null,
+    lockedAt: null,
+    updatedAt: now,
+  });
+  return (await getDayLog(day))!;
+}
+
+/** Append an ad-hoc task to a day. sourceTaskId stays null — it came from no template. */
+export async function addTask(day: string, draft: NewTask): Promise<Task> {
+  const log = await ensureDayLog(day);
+  const task = { ...draft, id: id(), sort: log.tasks.length } as Task;
+  await db.insert(dayLogTasks).values({
+    id: task.id,
+    dayLogId: log.id,
+    sourceTaskId: null,
+    ...taskToColumns(task),
+    updatedAt: Date.now(),
+  });
+  return task;
+}
+
+/** Patch one task in place. The main write path for the Today screen. */
 export async function updateTask(
   taskId: string,
   patch: Partial<ReturnType<typeof taskToColumns>>,
@@ -121,6 +152,27 @@ export async function listDayLogs(from: string, to: string): Promise<DayLog[]> {
  * One entry per day in the range, including days with no log (percent 0) —
  * the streak functions need an unbroken oldest-first sequence.
  */
+/** Every log on or before `day`, oldest first. Used to derive PRs and bests. */
+export async function listDayLogsUpTo(day: string = dayKey()): Promise<DayLog[]> {
+  const rows = await db
+    .select()
+    .from(dayLogs)
+    .where(and(eq(dayLogs.userId, LOCAL_USER_ID), lte(dayLogs.day, day)))
+    .orderBy(asc(dayLogs.day));
+
+  const result: DayLog[] = [];
+  for (const row of rows) {
+    result.push({
+      id: row.id,
+      day: row.day,
+      templateId: row.templateId,
+      lockedAt: row.lockedAt,
+      tasks: await loadTasks(row.id),
+    });
+  }
+  return result;
+}
+
 export async function daySummaries(days: string[]): Promise<DaySummary[]> {
   if (!days.length) return [];
   const logs = await listDayLogs(days[0], days[days.length - 1]);

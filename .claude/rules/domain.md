@@ -77,6 +77,11 @@ Logging progress (check, increment, weight, reps) stays **enabled all day**.
 
 Lock hour is 7 / 8 / 9 AM, default 8.
 
+`isPlanLocked` stays pure. Whether the lock is *applied* is a build switch:
+`PLAN_LOCK_ENABLED` in `src/lib/config.ts` is `!__DEV__`, so the lock is inert in
+development and live in release builds. Never move that check into the domain
+function — it would make the rule untestable.
+
 **Open question, do not guess:** what happens when the day log is created *after* the lock
 hour. Current proposal is that creating it locks it immediately, but this is unconfirmed —
 ask before implementing that branch.

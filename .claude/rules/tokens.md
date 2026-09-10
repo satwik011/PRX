@@ -6,8 +6,8 @@ Styling is **Uniwind + Tailwind v4**, which is CSS-first: there is no `tailwind.
 The tokens live in an `@theme` block in `src/global.css`, and this file is the source of
 truth for that block. Change both together.
 
-For anything that cannot take a `className` — chart props, `Progress.Bar` colors,
-`react-native-calendars` `theme`, SVG fills — import from `src/theme/tokens.ts`.
+For anything that cannot take a `className` — chart props, `react-native-calendars`
+`theme`, SVG fills, placeholder/caret colors — import from `src/theme/tokens.ts`.
 
 ## Colors — use the class, not the hex
 
@@ -117,16 +117,17 @@ the Phase 0 spike (commit `0e1b0c7`).
 
 1. **Cards are `border border-muted` with NO shadow.** `elev-sm` is a hairline.
 2. **Primary buttons are OUTLINED, not filled.**
-3. `Progress.Bar` needs `borderWidth={0}` — the library defaults to a 1px border.
-4. `Progress.Bar` needs `width={null}` to flex; a number pins it.
-5. `react-native-calendars` defaults to a **white** background. Set `theme.calendarBackground`.
-6. Week bars need a `bg-track` pill behind them — gifted-charts has no unfilled track.
-7. Partial days are **amber**, never green, never red.
-8. Three distinct muted text weights (`muted-foreground` / `subtle` / `faint`). Do not collapse them.
-9. Progress tracks are `bg-track`; fills are `bg-primary`; both `rounded-pill`.
-10. `<FadedRule />` fades over 48px at each end. In-card row separators are **solid**.
-11. Eyebrows are `text-meta uppercase tracking-[0.08em] text-subtle`.
-12. Streak numeral is `font-heading text-display leading-none`.
-13. Nothing uses `--color-section*`.
-14. Never use `font-medium` / `font-semibold` for a family — they are weight utilities.
+3. Use `<ProgressBar>` from `components/ui`. Do not add `react-native-progress` —
+   it was dropped in Phase 2 (its default 1px border reads as a stroke the design lacks).
+4. `react-native-calendars` defaults to a **white** background. Set `theme.calendarBackground`.
+5. Week bars are hand-drawn Views in one flex row — never overlay a chart library
+   on the track pills, they will not align.
+6. Partial days are **amber**, never green, never red.
+7. Three distinct muted text weights (`muted-foreground` / `subtle` / `faint`). Do not collapse them.
+8. Progress tracks are `bg-track`; fills are `bg-primary`; both `rounded-pill`.
+9. `<FadedRule />` fades over 48px at each end. In-card row separators are **solid**.
+10. Eyebrows are `text-meta uppercase tracking-[0.08em] text-subtle`.
+11. Streak numeral is `font-heading text-display leading-none`.
+12. Nothing uses `--color-section*`.
+13. Never use `font-medium` / `font-semibold` for a family — they are weight utilities.
     The families are `font-heading` and `font-strong`.
