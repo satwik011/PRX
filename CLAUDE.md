@@ -3,6 +3,8 @@
 @AGENTS.md
 
 Offline-first gym / habit tracker. React Native + Expo. Dark theme only.
+**Ships to iOS as a PWA** (Phase 7), so from Phase 4 on every storage decision must
+survive a second backend — see `.claude/rules/data.md`, "Targeting web".
 Design system is **Nocturne**, from a Claude Design mockup — match it exactly.
 
 ## Stack
@@ -38,7 +40,9 @@ Read only what the task needs. Do not read `docs/` — those are for the human.
 1. **Never guess a color, size, or spacing value.** Every one is in `tokens.md`. If it is
    not there, ask — do not invent.
 2. **Screens and hooks never import Supabase or Drizzle.** They call a hook; the hook calls
-   `lib/repo/`. The repository is the only layer that knows about storage.
+   `lib/repo/`. The repository is the only layer that knows about storage — and its
+   *exported types* must be domain types too, not Drizzle row types. Two known
+   violations are listed in `data.md`; do not add a third.
 3. **All reads come from SQLite.** No network in a render path, ever.
 4. **All writes go to SQLite first**, then append to `outbox`. Never write straight to Supabase.
 5. **`day_log_tasks` is a snapshot, not a reference.** Task name/type/target/unit are copied

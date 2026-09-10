@@ -93,6 +93,57 @@ streak functions need an unbroken oldest-first sequence — a gap would silently
 
 Regenerate migrations after any schema change: `npm run db:generate`.
 
+## Targeting web (applies from Phase 4 on)
+
+PRX ships a PWA in Phase 7 — Apple's $99/yr made TestFlight a non-starter.
+**Supabase is the only backend.** The same client, Postgres, auth and RLS serve
+React Native and the browser. There is no second API to build.
+
+What differs per platform:
+
+| | Native | Web |
+|---|---|---|
+| Local cache | expo-sqlite + Drizzle | IndexedDB |
+| Session storage | expo-secure-store | `localStorage` |
+
+Split them with Metro platform extensions — `dayLogs.web.ts` resolves over
+`dayLogs.ts` automatically, so callers import one path and get the right build.
+No abstraction layer. But both files must satisfy the same signature, which means:
+
+### The repo's INTERFACE must speak domain types only
+
+Its *implementation* may use Drizzle freely. Its exported types and parameters may
+not. **Two leaks exist today and must be closed before the web adapter is written:**
+
+1. `TemplateWithTasks.tasks` is typed `(typeof templateTasks.$inferSelect)[]` — a
+   Drizzle row type. `template-chip-row.tsx`, a component, imports it.
+2. `updateTask(taskId, patch)` takes `Partial<ReturnType<typeof taskToColumns>>`,
+   so `use-today.ts` imports `taskToColumns` and does column mapping in a hook.
+
+Both violate CLAUDE.md rule 2 in spirit — storage shapes have reached hooks and
+components. They are cheap to fix now and expensive once a second backend exists.
+
+### The local database becomes a CACHE
+
+Once Supabase is the source of record, the local copy is disposable. Browser
+storage is evictable by design — roughly 50 MB on iOS, cleared under device storage
+pressure, with contested 7-day ITP rules. **Eviction must degrade to a re-download,
+never to data loss.** Nothing may exist only in the local cache: it is either
+already synced or sitting in `outbox`.
+
+### The anon key is public on the web
+
+It ships in the JS bundle, readable in devtools. **RLS is the entire security
+boundary** — not defence in depth, the only defence. Test every policy as a
+non-owner before a single friend opens the URL.
+
+## Known issue — fix during Phase 4
+
+`listDayLogs` and `listDayLogsUpTo` run one query per day log to load its tasks:
+**365 queries for a year of history**, and `useHistory` re-runs it on every tab
+focus. Replace with a single `IN` query or a join. Invisible at today's volume, a
+visible stall at a year, and worse on IndexedDB than SQLite.
+
 ## RLS
 
 Every synced table. `auth.uid() = user_id`; child tables go through the parent:

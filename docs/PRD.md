@@ -171,12 +171,24 @@ of implementation.
 | **1** | Data spine, no UI: expo-sqlite + Drizzle, `lib/repo/`, `lib/domain/` + unit tests, seed templates | `npm test` green, especially the streak edge cases |
 | **2** | Today screen, full vertical slice: three task types, template chips, progress, add-task dialog, plan lock, real persistence | You log a real session on your phone and it survives a restart |
 | **3** | Read screens: Dashboard, History, PRs. Charts land here (gifted-charts, calendars, progress) | Numbers match hand-checked fixtures |
-| **4** | Accounts & sync: Supabase, RLS, auth screens, outbox, sync worker | Two devices converge; airplane mode changes nothing |
+| **4** | Accounts & sync: Supabase, RLS, auth screens, outbox, sync worker. **Written web-aware** — close the two repo type leaks, fix the N+1 in `listDayLogs*`, keep everything Supabase-specific inside `lib/repo` | Two devices converge; airplane mode changes nothing; RLS verified as a non-owner |
 | **5** | Templates & settings: library CRUD + duplicate, settings screens | Editing a template leaves logged days byte-identical |
-| **6** | Polish & ship: gotcha-list pass, empty/offline states, icons, EAS build | The 13-item list in `tokens.md` passes on a real device |
+| **6** | Polish & ship: gotcha-list pass, empty/offline states, icons | The 13-item list in `tokens.md` passes on a real device |
+| **7** | **PWA**: Expo web build, IndexedDB repo adapter via `.web.ts` platform extensions, manifest + service worker, free static hosting | A friend adds it to their iPhone home screen, trains for a month, and losing browser storage costs them nothing |
 
 Sync sits deliberately late: the app is fully useful before it, and it is the phase most
 likely to consume a week quietly.
+
+**Distribution decided the endgame.** Most of the friends we want on this are on iPhone,
+and Apple's $99/yr Developer Program is the only route to TestFlight — so the app ships
+as a **PWA** instead. That makes Phase 4 mandatory rather than optional: browser storage
+is evictable, so Supabase is what stops a friend losing a 40-day streak. It also means
+Phase 4 must be written knowing a second storage backend is coming — see
+`.claude/rules/data.md`, "Targeting web".
+
+Size is not a concern: a year of one person's training is roughly 0.4 MB in SQLite and
+under 1 MB in IndexedDB, against an iOS PWA quota of ~50 MB and a Supabase free tier of
+500 MB.
 
 ---
 
