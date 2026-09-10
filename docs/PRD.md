@@ -60,7 +60,7 @@ Versions and install commands: `.claude/rules/libraries.md`.
 | Concern | Choice | Why |
 |---|---|---|
 | Runtime | Expo managed + expo-router | File-based routing gives the tab group for free; EAS has a free build queue |
-| Styling | NativeWind v4 | v5 is pre-release |
+| Styling | Uniwind 1.12 + Tailwind v4 | NativeWind v5 is pre-release and v4 predates RN 0.86. Uniwind is a drop-in for the same className API, verified on SDK 57 |
 | Components | react-native-reusables | shadcn-for-RN: you copy the component in and own it. No runtime dep, no theme to fight |
 | Server state | TanStack Query | Caching, retry, optimistic task toggles |
 | Client state | Zustand | Session + settings only; everything else is query state |
@@ -83,6 +83,7 @@ a non-issue: one user logging 6 tasks/day for a year is ~2,200 rows.
 
 | Option | Why not |
 |---|---|
+| NativeWind (v4 or v5) | v5 is pre-release; v4 predates RN 0.86. Superseded by Uniwind |
 | Gluestack UI v2 | Faster to first screen, but opinionated styling we'd fight to match Nocturne's outlined buttons and hairline cards |
 | Tamagui | Excellent perf, heavy compiler setup, more than this needs |
 | Unistyles 3 / Uniwind | Fastest runtime, fewest prebuilt components — we'd hand-build most primitives |
@@ -144,17 +145,16 @@ untouched.
 3. **Quote of the day → bundled locally.** Static list in `lib/content/quotes.ts` picked by
    day-of-year. No network dependency for decoration. A `quotes` table is deliberately
    absent from v1.
+4. **Day key → plain local calendar date.** Midnight is midnight; a 00:30 session belongs
+   to the new day. No 4 AM offset, no timezone shifting.
+5. **Styling → Uniwind + Tailwind v4**, verified on SDK 57 in the Phase 0 spike.
 
 ## 5. Open questions
 
 **Do not guess these.** `.claude/rules/domain.md` flags both of the first two at the point
 of implementation.
 
-1. **Timezone.** The day key is local-date. If you travel or train past midnight, which day
-   does a 00:30 log belong to? Proposal: local date with a configurable "day starts at 4 AM"
-   offset. **Worth settling before the first row is written** — it's the one choice here
-   that's genuinely painful to change afterwards.
-2. **First open after lock hour.** Open the app at 11 AM with no day log — is the day already
+1. **First open after lock hour.** Open the app at 11 AM with no day log — is the day already
    locked (can't pick a template, so unusable) or does creating the log start it unlocked?
    Proposal: the lock applies only to a day log that already exists; creating one after the
    lock hour locks it immediately.
@@ -167,11 +167,16 @@ of implementation.
 
 | Phase | Scope | Done when |
 |---|---|---|
-| **P0** | Expo + NativeWind + RNR + tokens + fonts; tab shell; SQLite schema; Today screen with all three task types persisting locally | You can log a real gym session offline and it survives a restart |
-| **P1** | `lib/domain/` + tests; Dashboard, History, PRs reading local data | Streaks, heatmap and PRs are correct against hand-checked fixtures |
-| **P2** | Supabase project, RLS, auth screens, SecureStore chunking adapter, outbox + sync worker | Two devices on one account converge; airplane mode changes nothing about the UX |
-| **P3** | Settings; template library CRUD + duplicate; plan lock; empty/offline states; polish pass | Editing a template leaves logged days untouched, and the gotcha list in `tokens.md` passes on a real device |
-| **P4** | Local notifications, lb/kg toggle, user-specific quotes, PR trend line chart, widgets | — |
+| **0** ✅ | Styling spike: Uniwind + Tailwind v4 + Inter, Nocturne `@theme`, `theme/tokens.ts`, token reference screen | **Done** — commit `0e1b0c7`, verified rendering on device |
+| **1** | Data spine, no UI: expo-sqlite + Drizzle, `lib/repo/`, `lib/domain/` + unit tests, seed templates | `npm test` green, especially the streak edge cases |
+| **2** | Today screen, full vertical slice: three task types, template chips, progress, add-task dialog, plan lock, real persistence | You log a real session on your phone and it survives a restart |
+| **3** | Read screens: Dashboard, History, PRs. Charts land here (gifted-charts, calendars, progress) | Numbers match hand-checked fixtures |
+| **4** | Accounts & sync: Supabase, RLS, auth screens, outbox, sync worker | Two devices converge; airplane mode changes nothing |
+| **5** | Templates & settings: library CRUD + duplicate, settings screens | Editing a template leaves logged days byte-identical |
+| **6** | Polish & ship: gotcha-list pass, empty/offline states, icons, EAS build | The 14-item list in `tokens.md` passes on a real device |
+
+Sync sits deliberately late: the app is fully useful before it, and it is the phase most
+likely to consume a week quietly.
 
 ---
 

@@ -81,9 +81,10 @@ Lock hour is 7 / 8 / 9 AM, default 8.
 hour. Current proposal is that creating it locks it immediately, but this is unconfirmed —
 ask before implementing that branch.
 
-## Day key
+## Day key — DECIDED
 
-`YYYY-MM-DD` in the device's **local** timezone. A `date`, never a timestamp.
+`YYYY-MM-DD` in the device's **local calendar date**. A `date`, never a timestamp.
+Midnight is midnight: a session logged at 00:30 belongs to the new day.
 
-**Open question, do not guess:** whether a 00:30 log belongs to the previous day
-(a "day starts at 4 AM" offset). Ask before writing any timezone-shifting logic.
+No "day starts at 4 AM" offset, no timezone shifting. Do not add one without being asked —
+it changes what every existing row means.

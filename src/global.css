@@ -1,9 +1,68 @@
-:root {
-  --font-display:
-    Spline Sans, Inter, ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji,
-    Segoe UI Symbol, Noto Color Emoji;
-  --font-mono:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace;
-  --font-rounded: 'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif;
-  --font-serif: Georgia, 'Times New Roman', serif;
+@import 'tailwindcss';
+@import 'uniwind';
+
+/* ─────────────────────────────────────────────────────────────────────
+   Nocturne design tokens.
+   .claude/rules/tokens.md is the source of truth — mirror changes there.
+   Tailwind v4 is CSS-first: this @theme block replaces tailwind.config.js.
+   ───────────────────────────────────────────────────────────────────── */
+@theme {
+  /* Surfaces and text */
+  --color-background: #161826;
+  --color-foreground: #e9e9ed;
+  --color-card: #232532;
+  --color-primary: #9184d9;
+  --color-primary-foreground: #161826;
+  --color-secondary: #a7a1db;
+  --color-muted: #3f424d;
+  --color-muted-foreground: #b2b6ca;
+  --color-subtle: #9397ab;
+  --color-faint: #75798c;
+  --color-line: rgba(233, 233, 237, 0.16);
+  --color-track: #3f424d;
+  --color-warning: #dc932e;
+  --color-warning-foreground: #211a08;
+  --color-destructive: #f97770;
+  --color-tag-bg: #423a6a;
+  --color-tag-fg: #f5f4ff;
+  --color-elev-md: #595d6c;
+  --color-elev-lg: #9397ab;
+
+  /* Type — Inter 400/500/600 */
+  /* NB: names avoid Tailwind's font-weight utilities (medium/semibold/bold),
+     which would collide with a family of the same name. */
+  --font-sans: 'Inter_400Regular';
+  --font-heading: 'Inter_500Medium';
+  --font-strong: 'Inter_600SemiBold';
+
+  --text-micro: 10px;
+  --text-micro--line-height: 12px;
+  --text-meta: 11px;
+  --text-meta--line-height: 14px;
+  --text-label: 12px;
+  --text-label--line-height: 16px;
+  --text-sm: 13px;
+  --text-sm--line-height: 18px;
+  --text-body: 15px;
+  --text-body--line-height: 23px;
+  --text-card-title: 17px;
+  --text-card-title--line-height: 20px;
+  --text-h4: 20px;
+  --text-h4--line-height: 22px;
+  --text-h2: 32px;
+  --text-h2--line-height: 36px;
+  --text-display: 44px;
+  --text-display--line-height: 44px;
+
+  /* Radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+
+  /* Named layout spacing (the numeric scale stays Tailwind's 4px grid) */
+  --spacing-screen: 18px;
+  --spacing-screen-top: 58px;
+  --spacing-card-gap: 14px;
+  --spacing-task-gap: 10px;
 }
