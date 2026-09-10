@@ -1,5 +1,6 @@
+import { ScreenScroll } from '@/components/app/screen-scroll';
 import { router } from 'expo-router';
-import { ScrollView, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { ScreenHeader } from '@/components/app/screen-header';
 import { SectionCard } from '@/components/app/section-card';
@@ -34,9 +35,7 @@ export default function Settings() {
   };
 
   return (
-    <ScrollView
-      className="flex-1 bg-background"
-      contentContainerClassName="px-screen pt-screen-top pb-8">
+    <ScreenScroll>
       <ScreenHeader title="Settings" />
 
       <SectionCard className="mb-card-gap" title="Streak goal">
@@ -103,6 +102,6 @@ export default function Settings() {
       ) : null}
 
       <Button variant="ghost" full label="Token reference" onPress={() => router.push('/tokens')} />
-    </ScrollView>
+    </ScreenScroll>
   );
 }

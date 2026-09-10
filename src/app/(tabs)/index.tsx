@@ -1,6 +1,7 @@
+import { ScreenScroll } from '@/components/app/screen-scroll';
 import { Flame } from 'lucide-react-native';
 import { router } from 'expo-router';
-import { ScrollView, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { ScreenHeader } from '@/components/app/screen-header';
 import { SectionCard } from '@/components/app/section-card';
@@ -41,9 +42,7 @@ export default function Dashboard() {
   const now = new Date();
 
   return (
-    <ScrollView
-      className="flex-1 bg-background"
-      contentContainerClassName="px-screen pt-screen-top pb-8">
+    <ScreenScroll>
       <ScreenHeader
         eyebrow={`${DOW[now.getDay()]}, ${now.getDate()} ${MONTHS[now.getMonth()]}`}
         title="Welcome back"
@@ -81,6 +80,6 @@ export default function Dashboard() {
       <SectionCard title="This week">
         <WeekBarChart days={week} threshold={settings.streakThreshold} />
       </SectionCard>
-    </ScrollView>
+    </ScreenScroll>
   );
 }

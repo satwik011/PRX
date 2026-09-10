@@ -1,7 +1,8 @@
+import { ScreenScroll } from '@/components/app/screen-scroll';
 import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { ScreenHeader } from '@/components/app/screen-header';
 import { Button } from '@/components/ui/button';
@@ -37,9 +38,7 @@ export default function Schedule() {
   const today = weekdayOf(dayKey());
 
   return (
-    <ScrollView
-      className="flex-1 bg-background"
-      contentContainerClassName="px-screen pt-screen-top pb-8">
+    <ScreenScroll>
       <ScreenHeader eyebrow="Weekly routine" title="Schedule" />
 
       <Text className="mb-card-gap text-sm text-muted-foreground">
@@ -109,6 +108,6 @@ export default function Schedule() {
         label="Manage templates"
         onPress={() => router.push('/settings/templates')}
       />
-    </ScrollView>
+    </ScreenScroll>
   );
 }

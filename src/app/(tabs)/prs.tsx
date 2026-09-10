@@ -1,4 +1,5 @@
-import { ScrollView, View } from 'react-native';
+import { ScreenScroll } from '@/components/app/screen-scroll';
+import { View } from 'react-native';
 
 import { EmptyState } from '@/components/app/empty-state';
 import { PRGroupCard } from '@/components/app/pr-group-card';
@@ -11,9 +12,7 @@ export default function PRs() {
   if (!ready) return <View className="flex-1 bg-background" />;
 
   return (
-    <ScrollView
-      className="flex-1 bg-background"
-      contentContainerClassName="px-screen pt-screen-top pb-8">
+    <ScreenScroll>
       <ScreenHeader eyebrow="Gym-specific" title="Personal records" />
 
       {prs.length ? (
@@ -28,6 +27,6 @@ export default function PRs() {
           body="Log a weight against a PR task and it will appear here."
         />
       )}
-    </ScrollView>
+    </ScreenScroll>
   );
 }

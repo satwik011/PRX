@@ -1,5 +1,6 @@
+import { ScreenScroll } from '@/components/app/screen-scroll';
 import { useMemo, useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { CalendarHeatmap, HeatmapLegend } from '@/components/app/calendar-heatmap';
 import { EmptyState } from '@/components/app/empty-state';
@@ -46,9 +47,7 @@ export default function History() {
   const hasAny = logs.length > 0;
 
   return (
-    <ScrollView
-      className="flex-1 bg-background"
-      contentContainerClassName="px-screen pt-screen-top pb-8">
+    <ScreenScroll>
       <ScreenHeader eyebrow={`Last ${range} days`} title="History" />
 
       <SegmentedControl
@@ -89,6 +88,6 @@ export default function History() {
           body="Pick a template on Today and check something off — it shows up here."
         />
       )}
-    </ScrollView>
+    </ScreenScroll>
   );
 }

@@ -11,6 +11,7 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { Text, View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import migrations from '../../drizzle/migrations';
 import { db } from '@/db/client';
@@ -49,9 +50,11 @@ export default function RootLayout() {
 
   // Dark only — Nocturne has no light palette.
   return (
-    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#161826' } }}>
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="tokens" options={{ presentation: 'modal' }} />
-    </Stack>
+    <SafeAreaProvider>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#161826' } }}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="tokens" options={{ presentation: 'modal' }} />
+      </Stack>
+    </SafeAreaProvider>
   );
 }

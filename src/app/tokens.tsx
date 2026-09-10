@@ -1,4 +1,5 @@
-import { ScrollView, Text, View } from 'react-native';
+import { ScreenScroll } from '@/components/app/screen-scroll';
+import { Text, View } from 'react-native';
 
 /**
  * DEV-ONLY token reference at /tokens.
@@ -23,9 +24,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 
 export default function TokenReference() {
   return (
-    <ScrollView
-      className="flex-1 bg-background"
-      contentContainerClassName="px-screen pt-screen-top pb-8">
+    <ScreenScroll>
       {/* eyebrow + screen title — gotcha #11 */}
       <Text className="mb-0.5 text-meta uppercase tracking-[0.08em] text-subtle">
         Tuesday, 10 September
@@ -108,6 +107,6 @@ export default function TokenReference() {
       <Text className="mt-4 text-meta text-faint">
         Every block above maps to an item on the gotcha list in tokens.md.
       </Text>
-    </ScrollView>
+    </ScreenScroll>
   );
 }

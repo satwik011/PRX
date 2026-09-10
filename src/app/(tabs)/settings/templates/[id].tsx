@@ -1,6 +1,7 @@
+import { ScreenScroll } from '@/components/app/screen-scroll';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, ScrollView, Text, View } from 'react-native';
+import { Alert, Text, View } from 'react-native';
 
 import { ScreenHeader } from '@/components/app/screen-header';
 import { TagPill } from '@/components/app/tag-pill';
@@ -52,10 +53,7 @@ export default function TemplateEditor() {
     ]);
 
   return (
-    <ScrollView
-      className="flex-1 bg-background"
-      contentContainerClassName="px-screen pt-screen-top pb-8"
-      keyboardShouldPersistTaps="handled">
+    <ScreenScroll>
       <ScreenHeader eyebrow="Template" title={template.name} />
 
       {template.isSeed ? (
@@ -127,6 +125,6 @@ export default function TemplateEditor() {
           <Button full variant="ghost" label="Delete" onPress={confirmDelete} />
         </View>
       </View>
-    </ScrollView>
+    </ScreenScroll>
   );
 }

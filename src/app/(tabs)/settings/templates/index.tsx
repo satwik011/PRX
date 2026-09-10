@@ -1,6 +1,7 @@
+import { ScreenScroll } from '@/components/app/screen-scroll';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { View } from 'react-native';
 
 import { EmptyState } from '@/components/app/empty-state';
 import { ScreenHeader } from '@/components/app/screen-header';
@@ -22,9 +23,7 @@ export default function TemplateLibrary() {
   const open = (id: string) => router.push(`/settings/templates/${id}`);
 
   return (
-    <ScrollView
-      className="flex-1 bg-background"
-      contentContainerClassName="px-screen pt-screen-top pb-8">
+    <ScreenScroll>
       <ScreenHeader eyebrow="Build once, reuse" title="Templates" />
 
       {templates.length ? (
@@ -57,6 +56,6 @@ export default function TemplateLibrary() {
           open(created.id);
         }}
       />
-    </ScrollView>
+    </ScreenScroll>
   );
 }

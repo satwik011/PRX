@@ -13,12 +13,13 @@ export default function TabLayout() {
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.faint,
         sceneStyle: { backgroundColor: colors.background },
+        // No fixed height — react-navigation adds the home-indicator inset itself.
+        // Pinning it to 68 clipped the labels on notched iPhones.
         tabBarStyle: {
           backgroundColor: colors.background,
           borderTopColor: colors.line,
           borderTopWidth: 1,
           paddingTop: 8,
-          height: 68,
         },
         tabBarLabelStyle: { fontSize: 10, fontFamily: 'Inter_400Regular' },
       }}>

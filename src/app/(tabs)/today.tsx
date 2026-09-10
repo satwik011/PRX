@@ -1,6 +1,8 @@
+import { ScreenScroll } from '@/components/app/screen-scroll';
 import { router } from 'expo-router';
+import { KeyboardAvoidingView, Platform } from 'react-native';
 import { useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { AddTaskDialog } from '@/components/app/add-task-dialog';
 import { EmptyState } from '@/components/app/empty-state';
@@ -37,11 +39,10 @@ export default function Today() {
   const hasPlan = (log?.tasks.length ?? 0) > 0;
 
   return (
-    <>
-      <ScrollView
-        className="flex-1 bg-background"
-        contentContainerClassName="px-screen pt-screen-top pb-8"
-        keyboardShouldPersistTaps="handled">
+    <KeyboardAvoidingView
+      className="flex-1"
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <ScreenScroll>
         <ScreenHeader eyebrow={todayLabel()} title="Today" />
 
         <TemplateChipRow
@@ -108,7 +109,7 @@ export default function Today() {
             />
           </View>
         )}
-      </ScrollView>
+      </ScreenScroll>
 
       <AddTaskDialog
         visible={addOpen}
@@ -118,6 +119,6 @@ export default function Today() {
           setAddOpen(false);
         }}
       />
-    </>
+    </KeyboardAvoidingView>
   );
 }
